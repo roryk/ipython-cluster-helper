@@ -3,10 +3,8 @@
 Uses IPython parallel to setup a cluster and manage execution:
 
 http://ipython.org/ipython-doc/stable/parallel/index.html
-
-Borrowed from Rory Kirchner's Bipy cluster implementation:
-
-https://github.com/roryk/bipy/blob/master/bipy/cluster/__init__.py
+Borrowed from Brad Chapman's implementation:
+https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/pipeline/ipython.py
 """
 import pipes
 import time
@@ -16,6 +14,8 @@ import contextlib
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.utils import traitlets
+import os
+import shutil
 
 # ## Custom launchers
 
@@ -229,11 +229,22 @@ def create_throwaway_profile():
     return profile
 
 def delete_profile(profile):
-    ipython_dir = subprocess.check_call("ipython locate")
+    MAX_TRIES = 10
+    proc = subprocess.Popen("ipython locate", stdout=subprocess.PIPE, shell=True)
+    ipython_dir = proc.stdout.read().strip()
     profile_dir = "profile_{0}".format(profile)
-    dir_to_remove = os.path.join(ipython_dir, profile_dir))
+    dir_to_remove = os.path.join(ipython_dir, profile_dir)
     if os.path.exists(dir_to_remove):
-        shutils.remove(dir_to_remove)
+        num_tries = 0
+        while True:
+            try:
+                shutil.rmtree(dir_to_remove)
+                break
+            except OSError:
+                if num_tries > MAX_TRIES:
+                    raise
+                time.sleep(5)
+                num_tries += 1
     else:
         raise ValueError("Cannot find {0} to remove, "
                          "something is wrong.".format(dir_to_remove))
