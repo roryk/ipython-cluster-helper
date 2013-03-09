@@ -92,6 +92,46 @@ def _find_parallel_environment():
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
 
+class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
+    """Custom launcher handling heterogeneous clusters on SGE.
+    """
+    cores = traitlets.Integer(1, config=True)
+    pename = traitlets.Unicode("", config=True)
+    default_template = traitlets.Unicode("""#PBS -V
+#PBS -cwd
+#PBS -j y
+#PBS -S /bin/sh
+#PBS -q {queue}
+#PBS -N bcbio-ipengine
+#PBS -t 1-{n}
+%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+"""% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+      ' '.join(timeout_params)))
+
+    def start(self, n):
+        self.context["cores"] = self.cores
+        self.context["pename"] = str(self.pename)
+        return super(BcbioSGEEngineSetLauncher, self).start(n)
+
+
+class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
+    default_template = traitlets.Unicode(u"""#PBS -V
+#PBS -S /bin/sh
+#PBS -N ipcontroller
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+
+    def start(self):
+        return super(BcbioPBSControllerLauncher, self).start()
+
+class BcbioTORQUEEngineSetLauncher(BcbioPBSEngineSetLauncher):
+    def start(self):
+        return super(BcbioTORQUEEngineSetLauncher, self).start()
+
+class BcbioTORQUEControllerLauncher(BcbioPBSControllerLauncher):
+    def start(self):
+        return super(BcbioTORQUEControllerLauncher, self).start()
+
 # ## Control clusters
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job):
@@ -175,7 +215,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1):
         if client:
             client.close()
         _stop(profile)
-        delete_profile()
+        delete_profile(profile)
 
 def _get_balanced_blocked_view(client):
     view = client.load_balanced_view()
@@ -188,5 +228,12 @@ def create_throwaway_profile():
     subprocess.check_call(cmd, shell=True)
     return profile
 
-def delete_profile():
-   pass
+def delete_profile(profile):
+    ipython_dir = subprocess.check_call("ipython locate")
+    profile_dir = "profile_{0}".format(profile)
+    dir_to_remove = os.path.join(ipython_dir, profile_dir))
+    if os.path.exists(dir_to_remove):
+        shutils.remove(dir_to_remove)
+    else:
+        raise ValueError("Cannot find {0} to remove, "
+                         "something is wrong.".format(dir_to_remove))
