@@ -137,7 +137,7 @@ class BcbioTORQUEControllerLauncher(BcbioPBSControllerLauncher):
 def _start(scheduler, profile, queue, num_jobs, cores_per_job):
     """Starts cluster from commandline.
     """
-    ns = "cluster_helper"
+    ns = "cluster_helper.cluster"
     scheduler = scheduler.upper()
     engine_class = "Bcbio%sEngineSetLauncher" % scheduler
     controller_class = "Bcbio%sControllerLauncher" % scheduler
