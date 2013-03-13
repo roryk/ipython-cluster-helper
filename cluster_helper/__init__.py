@@ -6,6 +6,8 @@ http://ipython.org/ipython-doc/stable/parallel/index.html
 Borrowed from Brad Chapman's implementation:
 https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/pipeline/ipython.py
 """
+__import__('pkg_resources').declare_namespace(__name__)
+
 import pipes
 import time
 import uuid
