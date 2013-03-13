@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name = "ipython-cluster-helper",
-      version = "0.0.03",
+      version = "0.0.04",
       author = "Rory Kirchner",
       author_email = "rory.kirchner@gmail.com",
       description = "Simple IPython cluster startup and use.",
