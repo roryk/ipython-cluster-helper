@@ -1,4 +1,4 @@
-from cluster_helper import cluster_view
+from cluster_helper.cluster import cluster_view
 import argparse
 import time
 
