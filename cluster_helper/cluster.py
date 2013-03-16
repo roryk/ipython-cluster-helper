@@ -98,8 +98,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#PBS -V
-#PBS -cwd
-#PBS -j y
+#PBS -j oe
 #PBS -S /bin/sh
 #PBS -q {queue}
 #PBS -N bcbio-ipengine
@@ -111,7 +110,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
-        return super(BcbioSGEEngineSetLauncher, self).start(n)
+        return super(BcbioPBSEngineSetLauncher, self).start(n)
 
 
 class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
