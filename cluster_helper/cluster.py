@@ -141,7 +141,7 @@ class BcbioTORQUEEngineSetLauncher(launcher.PBSEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
-        return super(BcbioTorqueEngineSetLauncher, self).start(n)
+        return super(BcbioTORQUEEngineSetLauncher, self).start(n)
 
 class BcbioTORQUEControllerLauncher(launcher.PBSControllerLauncher):
     default_template = traitlets.Unicode(u"""#PBS -V
@@ -151,7 +151,7 @@ class BcbioTORQUEControllerLauncher(launcher.PBSControllerLauncher):
 """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
 
     def start(self):
-        return super(BcbioTorqueControllerLauncher, self).start()
+        return super(BcbioTORQUEControllerLauncher, self).start()
 
 # ## Control clusters
 
