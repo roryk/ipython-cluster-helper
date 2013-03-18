@@ -123,7 +123,7 @@ class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
     def start(self):
         return super(BcbioPBSControllerLauncher, self).start()
 
-class BcbioTorqueEngineSetLauncher(launcher.PBSEngineSetLauncher):
+class BcbioTORQUEEngineSetLauncher(launcher.PBSEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on Torque
     """
     cores = traitlets.Integer(1, config=True)
@@ -143,7 +143,7 @@ class BcbioTorqueEngineSetLauncher(launcher.PBSEngineSetLauncher):
         self.context["pename"] = str(self.pename)
         return super(BcbioTorqueEngineSetLauncher, self).start(n)
 
-class BcbioTorqueControllerLauncher(launcher.PBSControllerLauncher):
+class BcbioTORQUEControllerLauncher(launcher.PBSControllerLauncher):
     default_template = traitlets.Unicode(u"""#PBS -V
 #PBS -S /bin/sh
 #PBS -N ipcontroller
