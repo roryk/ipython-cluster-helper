@@ -6,20 +6,21 @@ http://ipython.org/ipython-doc/stable/parallel/index.html
 Borrowed from Brad Chapman's implementation:
 https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/pipeline/ipython.py
 """
-import pipes
-import time
-import uuid
-import subprocess
 import contextlib
+import os
+import pipes
+import uuid
+import shutil
+import subprocess
+import time
+
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.utils import traitlets
-import os
-import shutil
 
 # ## Custom launchers
 
-timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=120"]
+timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960"]
 
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
@@ -43,7 +44,7 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -J bcbio-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
     """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
     def start(self):
         return super(BcbioLSFControllerLauncher, self).start()
@@ -75,7 +76,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -S /bin/sh
 #$ -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
 """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
     def start(self):
         return super(BcbioSGEControllerLauncher, self).start()
@@ -165,8 +166,8 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job):
     args = launcher.ipcluster_cmd_argv + \
         ["start",
          "--daemonize=True",
-         "--IPClusterEngines.early_shutdown=180",
-         "--delay=20",
+         "--IPClusterEngines.early_shutdown=240",
+         "--delay=10",
          "--log-level=%s" % "WARN",
          "--profile=%s" % profile,
          "--n=%s" % num_jobs,
@@ -202,8 +203,8 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1):
       - num_jobs: Number of jobs to start.
       - cores_per_job: The number of cores to use for each job.
     """
-    delay = 5
-    max_delay = 300
+    delay = 10
+    max_delay = 960
     max_tries = 10
     profile = create_throwaway_profile()
     num_tries = 0
