@@ -17,11 +17,13 @@ import time
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.utils import traitlets
+from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
 # ## Custom launchers
 
 timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960"]
 
+# ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
     """
@@ -49,6 +51,7 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     def start(self):
         return super(BcbioLSFControllerLauncher, self).start()
 
+# ## Sun Grid Engine (SGE)
 class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
     """
@@ -93,39 +96,9 @@ def _find_parallel_environment():
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
 
+# ## PBS
 class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
-    """Custom launcher handling heterogeneous clusters on PBSPro
-    """
-    cores = traitlets.Integer(1, config=True)
-    pename = traitlets.Unicode("", config=True)
-    default_template = traitlets.Unicode("""#PBS -V
-#PBS -j oe
-#PBS -S /bin/sh
-#PBS -q {queue}
-#PBS -N bcbio-ipengine
-#PBS -J 1-{n}
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
-      ' '.join(timeout_params)))
-
-    def start(self, n):
-        self.context["cores"] = self.cores
-        self.context["pename"] = str(self.pename)
-        return super(BcbioPBSEngineSetLauncher, self).start(n)
-
-
-class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
-    default_template = traitlets.Unicode(u"""#PBS -V
-#PBS -S /bin/sh
-#PBS -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
-
-    def start(self):
-        return super(BcbioPBSControllerLauncher, self).start()
-
-class BcbioTORQUEEngineSetLauncher(launcher.PBSEngineSetLauncher):
-    """Custom launcher handling heterogeneous clusters on Torque
+    """Custom launcher handling heterogeneous clusters on SGE.
     """
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
@@ -142,19 +115,101 @@ class BcbioTORQUEEngineSetLauncher(launcher.PBSEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
-        return super(BcbioTORQUEEngineSetLauncher, self).start(n)
+        return super(BcbioPBSEngineSetLauncher, self).start(n)
 
-class BcbioTORQUEControllerLauncher(launcher.PBSControllerLauncher):
+
+class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
     default_template = traitlets.Unicode(u"""#PBS -V
 #PBS -S /bin/sh
 #PBS -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
 """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
 
     def start(self):
-        return super(BcbioTORQUEControllerLauncher, self).start()
+        return super(BcbioPBSControllerLauncher, self).start()
 
-# ## Control clusters
+# ## Torque
+class TORQUELauncher(launcher.BatchSystemLauncher):
+    """A BatchSystemLauncher subclass for PBS."""
+
+    submit_command = List(['qsub'], config=True,
+        help="The PBS submit command ['qsub']")
+    delete_command = List(['qdel'], config=True,
+        help="The PBS delete command ['qsub']")
+    job_id_regexp = CRegExp(r'\d+', config=True,
+        help="Regular expresion for identifying the job ID [r'\d+']")
+
+    batch_file = Unicode(u'')
+    job_array_regexp = CRegExp('#PBS\W+-t\W+[\w\d\-\$]+')
+    job_array_template = Unicode('#PBS -t 1-{n}')
+    queue_regexp = CRegExp('#PBS\W+-q\W+\$?\w+')
+    queue_template = Unicode('#PBS -q {queue}')
+
+class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
+    """Launch Engines using PBS"""
+    batch_file_name = Unicode(u'torque_engines', config=True,
+        help="batch file name for the engine(s) job.")
+    default_template= Unicode(u"""#!/bin/sh
+#PBS -V
+#PBS -N ipengine
+%s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+"""%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
+
+    def start(self, n):
+        """Start n engines by profile or profile_dir."""
+        return super(BcbioTORQUEEngineSetLauncher, self).start(n)
+
+class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
+    """Launch a controller using PBS."""
+
+    batch_file_name = Unicode(u'torque_controller', config=True,
+        help="batch file name for the controller job.")
+    default_template= Unicode("""#!/bin/sh
+#PBS -V
+#PBS -N ipcontroller
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+
+
+    def start(self):
+        """Start the controller by profile or profile_dir."""
+        return super(BcbioTORQUEControllerLauncher, self).start(1)
+
+# ## PBSPro
+class PBSPROLauncher(launcher.PBSLauncher):
+    """A BatchSystemLauncher subclass for PBSPro."""
+    job_array_regexp = CRegExp('#PBS\W+-J\W+[\w\d\-\$]+')
+    job_array_template = Unicode('#PBS -J 1-{n}')
+
+class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
+    """Launch Engines using PBSPro"""
+    batch_file_name = Unicode(u'pbspro_engines', config=True,
+        help="batch file name for the engine(s) job.")
+    default_template= Unicode(u"""#!/bin/sh
+#PBS -V
+#PBS -N ipengine
+%s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+"""%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
+
+    def start(self, n):
+        """Start n engines by profile or profile_dir."""
+        return super(BcbioPBSPROEngineSetLauncher, self).start(n)
+
+class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
+    """Launch a controller using PBSPro."""
+
+    batch_file_name = Unicode(u'pbspro_controller', config=True,
+        help="batch file name for the controller job.")
+    default_template= Unicode("""#!/bin/sh
+#PBS -V
+#PBS -N ipcontroller
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+
+
+    def start(self):
+        """Start the controller by profile or profile_dir."""
+        return super(BcbioPBSPROControllerLauncher, self).start(1)
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job):
     """Starts cluster from commandline.
@@ -174,10 +229,11 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job):
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
-         "--%sLauncher.queue='%s'" % (scheduler, queue),
+         "--%sLauncher.queue='%s'" % (scheduler, queue)
          ]
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
+
     subprocess.check_call(args)
 
 def _stop(profile):
