@@ -32,7 +32,7 @@ ipython-cluster-helper creates a throwaway parallel IPython profile, launches a 
 shuts the cluster down and deletes the throwaway profile.
 
 ## Supported schedulers
-Platform LSF ("lsf") and Sun Grid Engine ("sge"). More to come.
+Platform LSF ("lsf") and Sun Grid Engine ("sge"). Torque ("torque") is functional but not fully tested yet. More to come.
 
 ## Credits
 The cool parts of this were ripped from [bcbio-nextgen](https://github.com/chapmanb/bcbio-nextgen).
