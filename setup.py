@@ -2,10 +2,10 @@
 from setuptools import setup, find_packages
 
 setup(name = "ipython-cluster-helper",
-      version = "0.1",
+      version = "0.1.1",
       author = "Rory Kirchner",
       author_email = "rory.kirchner@gmail.com",
-      description = "Simple IPython cluster startup and use.",
+      description = "Simplify IPython cluster start up and use for multiple schedulers.",
       license = "MIT",
       url = "https://github.com/roryk/ipython-cluster-helper",
       namespace_packages = ["cluster_helper"],
