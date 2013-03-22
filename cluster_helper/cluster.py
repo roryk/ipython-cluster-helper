@@ -251,7 +251,7 @@ def _is_up(profile, n):
         return up >= n
 
 @contextlib.contextmanager
-def cluster_view(scheduler, queue, num_jobs, cores_per_job=1):
+def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None):
     """Provide a view on an ipython cluster for processing.
 
     parallel is a dictionary with:
@@ -262,7 +262,11 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1):
     delay = 10
     max_delay = 960
     max_tries = 10
-    profile = create_throwaway_profile()
+    if profile is None:
+        has_throwaway = True
+        profile = create_throwaway_profile()
+    else:
+        has_throwaway = False
     num_tries = 0
     while 1:
         try:
@@ -293,12 +297,15 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1):
         if client:
             client.close()
         _stop(profile)
-        delete_profile(profile)
+        if has_throwaway:
+            delete_profile(profile)
 
 def _get_balanced_blocked_view(client):
     view = client.load_balanced_view()
     view.block = True
     return view
+
+# ## Temporary profile management
 
 def create_throwaway_profile():
     profile = str(uuid.uuid1())
