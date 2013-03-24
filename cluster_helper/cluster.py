@@ -147,16 +147,21 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
 
 class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBS"""
+    cores = traitlets.Integer(1, config=True)
     batch_file_name = Unicode(u'torque_engines', config=True,
         help="batch file name for the engine(s) job.")
     default_template= Unicode(u"""#!/bin/sh
 #PBS -V
+#PBS -j oe
 #PBS -N ipengine
+#PBS -l nodes=1;ppn={cores}
+#PBS -l walltime=239:00:00
 %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
+        self.context["cores"] = self.cores
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
 
 class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
@@ -167,6 +172,8 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
     default_template= Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
+#PBS -j oe
+#PBS -l walltime=239:00:00
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
 """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
 
