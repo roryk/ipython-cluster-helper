@@ -22,6 +22,7 @@ from IPython.utils.traitlets import (List, Unicode, CRegExp)
 # ## Custom launchers
 
 timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960"]
+controller_params = ["--nodb", "--hwm=1", "--scheme=pure"]
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
@@ -46,8 +47,9 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -J bcbio-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
-    """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+    """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+         ' '.join(controller_params)))
     def start(self):
         return super(BcbioLSFControllerLauncher, self).start()
 
@@ -79,8 +81,9 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -S /bin/sh
 #$ -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+     ' '.join(controller_params)))
     def start(self):
         return super(BcbioSGEControllerLauncher, self).start()
 
@@ -122,8 +125,9 @@ class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
     default_template = traitlets.Unicode(u"""#PBS -V
 #PBS -S /bin/sh
 #PBS -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+     ' '.join(controller_params)))
 
     def start(self):
         return super(BcbioPBSControllerLauncher, self).start()
@@ -140,8 +144,8 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
         help="Regular expresion for identifying the job ID [r'\d+']")
 
     batch_file = Unicode(u'')
-    job_array_regexp = CRegExp('#PBS\W+-t\W+[\w\d\-\$]+')
-    job_array_template = Unicode('#PBS -t 1-{n}')
+    #job_array_regexp = CRegExp('#PBS\W+-t\W+[\w\d\-\$]+')
+    #job_array_template = Unicode('#PBS -t 1-{n}')
     queue_regexp = CRegExp('#PBS\W+-q\W+\$?\w+')
     queue_template = Unicode('#PBS -q {queue}')
 
@@ -154,7 +158,8 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 #PBS -V
 #PBS -j oe
 #PBS -N ipengine
-#PBS -l nodes=1;ppn={cores}
+#PBS -t 1-{n}
+#PBS -l nodes=1:ppn={cores}
 #PBS -l walltime=239:00:00
 %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
@@ -174,9 +179,9 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
 #PBS -N ipcontroller
 #PBS -j oe
 #PBS -l walltime=239:00:00
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
-
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+     ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
@@ -210,9 +215,9 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     default_template= Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" --nodb --hwm=5 --scheme=pure
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv))))
-
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+     ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
