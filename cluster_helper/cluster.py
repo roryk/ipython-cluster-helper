@@ -140,7 +140,7 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
         help="The PBS submit command ['qsub']")
     delete_command = List(['qdel'], config=True,
         help="The PBS delete command ['qsub']")
-    job_id_regexp = CRegExp(r'\d+', config=True,
+    job_id_regexp = CRegExp(r'\d+(\[\])?', config=True,
         help="Regular expresion for identifying the job ID [r'\d+']")
 
     batch_file = Unicode(u'')
