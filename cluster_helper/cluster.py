@@ -22,7 +22,7 @@ from IPython.utils.traitlets import (List, Unicode, CRegExp)
 # ## Custom launchers
 
 timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960"]
-controller_params = ["--nodb", "--hwm=1", "--scheme=pure"]
+controller_params = ["--nodb", "--hwm=1", "--scheme=lru"]
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
