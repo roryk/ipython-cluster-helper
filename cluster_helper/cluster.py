@@ -18,7 +18,6 @@ from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
-import tempfile
 
 # ## Custom launchers
 
