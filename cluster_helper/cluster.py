@@ -18,6 +18,7 @@ from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
+import tempfile
 
 # ## Custom launchers
 
@@ -28,6 +29,7 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru"]
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
     """
+    batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -q {queue}
@@ -44,6 +46,8 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
         return super(BcbioLSFEngineSetLauncher, self).start(n)
 
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
+    batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
+    "-".join( str(uuid.uuid4))
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -J bcbio-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
@@ -57,6 +61,7 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
 class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
     """
+    batch_file_name = Unicode(unicode("sge_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#$ -V
@@ -78,6 +83,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
+    batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -S /bin/sh
 #$ -N ipcontroller
@@ -103,6 +109,7 @@ def _find_parallel_environment():
 class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
     """
+    batch_file_name = Unicode(unicode("pbs_engines" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#PBS -V
@@ -122,6 +129,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
 
 
 class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
+    batch_file_name = Unicode(unicode("pbs_controller" + str(uuid.uuid4())))
     default_template = traitlets.Unicode(u"""#PBS -V
 #PBS -S /bin/sh
 #PBS -N ipcontroller
@@ -152,8 +160,8 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
 class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBS"""
     cores = traitlets.Integer(1, config=True)
-    batch_file_name = Unicode(u'torque_engines', config=True,
-        help="batch file name for the engine(s) job.")
+    batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
+                              config=True, help="batch file name for the engine(s) job.")
     default_template= Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -j oe
@@ -171,9 +179,9 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 
 class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBS."""
+    batch_file_name = Unicode(unicode("torque_controller" + str(uuid.uuid4())),
+                              config=True, help="batch file name for the engine(s) job.")
 
-    batch_file_name = Unicode(u'torque_controller', config=True,
-        help="batch file name for the controller job.")
     default_template= Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
