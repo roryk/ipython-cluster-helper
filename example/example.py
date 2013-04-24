@@ -19,10 +19,13 @@ if __name__ == "__main__":
                         type=int, help="number of jobs to run in parallel.")
     parser.add_argument("--cores_per_job", dest="cores_per_job", default=1,
                         type=int, help="number of cores for each job.")
+    parser.add_argument("--profile", dest="profile", default=None,
+                        help="Optional profile to test.")
 
     args = parser.parse_args()
 
-    with cluster_view(args.scheduler, args.queue, args.num_jobs) as view:
+    with cluster_view(args.scheduler, args.queue, args.num_jobs,
+                      profile=args.profile) as view:
         print "First check to see if we can talk to the engines."
         results = view.map(lambda x: "hello world!", range(5))
         print ("This long computation that waits for 5 seconds before returning "
