@@ -230,7 +230,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
         """Start the controller by profile or profile_dir."""
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
-def _start(scheduler, profile, queue, num_jobs, cores_per_job):
+def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id):
     """Starts cluster from commandline.
     """
     ns = "cluster_helper.cluster"
@@ -248,20 +248,23 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job):
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
-         "--%sLauncher.queue='%s'" % (scheduler, queue)
+         "--%sLauncher.queue='%s'" % (scheduler, queue),
+         "--cluster-id=%s" % (cluster_id)
          ]
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
 
     subprocess.check_call(args)
+    return cluster_id
 
-def _stop(profile):
+def _stop(profile, cluster_id):
     subprocess.check_call(launcher.ipcluster_cmd_argv +
-                          ["stop", "--profile=%s" % profile])
+                          ["stop", "--profile=%s" % profile,
+                           "--cluster-id=%s" % cluster_id])
 
-def _is_up(profile, n):
+def _is_up(url_file, n):
     try:
-        client = Client(profile=profile)
+        client = Client(url_file)
         up = len(client.ids)
         client.close()
     except IOError, msg:
@@ -287,9 +290,13 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None):
     else:
         has_throwaway = False
     num_tries = 0
+
+    cluster_id = str(uuid.uuid4())
+    url_file = get_url_file(profile, cluster_id)
+    #cluster_id = ""
     while 1:
         try:
-            _start(scheduler, profile, queue, num_jobs, cores_per_job)
+            _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id)
             break
         except subprocess.CalledProcessError:
             if num_tries > max_tries:
@@ -299,23 +306,17 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None):
     try:
         client = None
         slept = 0
-        while not _is_up(profile, num_jobs):
+        while not _is_up(url_file, num_jobs):
             time.sleep(delay)
             slept += delay
             if slept > max_delay:
                 raise IOError("Cluster startup timed out.")
-        #client = Client(profile=profile, cluster_id=cluster_id)
-        client = Client(profile=profile)
-        # push config to all engines and force them to set up logging
-        #client[:]['config'] = config
-        #client[:].execute('from bcbio.log import setup_logging')
-        #client[:].execute('setup_logging(config)')
-        #client[:].execute('from bcbio.log import logger')
+        client = Client(url_file)
         yield _get_balanced_blocked_view(client)
     finally:
         if client:
             client.close()
-        _stop(profile)
+        _stop(profile, cluster_id)
         if has_throwaway:
             delete_profile(profile)
 
@@ -331,6 +332,20 @@ def create_throwaway_profile():
     cmd = "ipython profile create {0} --parallel".format(profile)
     subprocess.check_call(cmd, shell=True)
     return profile
+
+
+def get_ipython_dir(profile):
+    proc = subprocess.Popen("ipython locate", stdout=subprocess.PIPE, shell=True)
+    ipython_dir = proc.stdout.read().strip()
+    profile_dir = "profile_{0}".format(profile)
+    return os.path.join(ipython_dir, profile_dir)
+
+def get_url_file(profile, cluster_id):
+    ipython_dir = get_ipython_dir(profile)
+    security_dir = os.path.join(ipython_dir, "security")
+    url_file = "ipcontroller-{0}-client.json".format(cluster_id)
+    return os.path.join(security_dir, url_file)
+
 
 def delete_profile(profile):
     MAX_TRIES = 10
