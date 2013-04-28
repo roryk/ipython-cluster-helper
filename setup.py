@@ -11,5 +11,5 @@ setup(name = "ipython-cluster-helper",
       namespace_packages = ["cluster_helper"],
       packages = find_packages(),
       install_requires = [
-          "pyzmq == 2.2.0.1",
+          "pyzmq >= 13.1.dev",
           "ipython >= 0.13.1"])
