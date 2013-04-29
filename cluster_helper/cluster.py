@@ -98,11 +98,17 @@ def _find_parallel_environment():
     for name in subprocess.check_output(["qconf", "-spl"]).strip().split():
         if name:
             for line in subprocess.check_output(["qconf", "-sp", name]).split("\n"):
-                if line.startswith("allocation_rule") and line.find("$pe_slots") >= 0:
+                if _has_parallel_environment(line):
                     return name
     raise ValueError("Could not find an SGE environment configured for parallel execution. " \
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
+
+def _has_parallel_environment(line):
+    if line.startswith("allocation_rule"):
+        if line.find("$pe_slots") >= 0 or line.find("$fill_up") >= 0:
+                return True
+    return False
 
 # ## PBS
 class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
