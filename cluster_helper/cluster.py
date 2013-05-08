@@ -21,8 +21,18 @@ from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
 # ## Custom launchers
 
-timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960"]
-controller_params = ["--nodb", "--hwm=1", "--scheme=lru"]
+# Handles longer timeouts for startup and shutdown
+# with pings between engine and controller.
+# Update the ping period to 15 seconds instead of 3.
+# Shutdown engines if they cannot be contacted for 3 minutes
+# from controller.
+# Makes engine pingback shutdown higher, since this is
+# not consecutive misses.
+timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960",
+                  "--EngineFactory.max_heartbeat_misses=100"]
+controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
+                     "--HeartMonitor.max_heartmonitor_misses=12",
+                     "--HeartMonitor.period=15000"]
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
@@ -174,8 +184,9 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 #PBS -t 1-{n}
 #PBS -l nodes=1:ppn={cores}
 #PBS -l walltime=239:00:00
-%s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
+%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+           ' '.join(timeout_params)))
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
@@ -213,8 +224,9 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     default_template= Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N ipengine
-%s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""%(' '.join(map(pipes.quote,launcher.ipengine_cmd_argv))))
+%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+           ' '.join(timeout_params)))
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""

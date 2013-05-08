@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(name = "ipython-cluster-helper",
-      version = "0.1.4",
+      version = "0.1.5a",
       author = "Rory Kirchner",
       author_email = "rory.kirchner@gmail.com",
       description = "Simplify IPython cluster start up and use for multiple schedulers.",
@@ -11,5 +11,5 @@ setup(name = "ipython-cluster-helper",
       namespace_packages = ["cluster_helper"],
       packages = find_packages(),
       install_requires = [
-          "pyzmq >= 13.0",
+          "pyzmq >= 13.1.0",
           "ipython >= 0.13.1"])
