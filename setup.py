@@ -9,7 +9,8 @@ setup(name = "ipython-cluster-helper",
       license = "MIT",
       url = "https://github.com/roryk/ipython-cluster-helper",
       namespace_packages = ["cluster_helper"],
+      dependency_links = ['http://github.com/ipython/ipython/tarball/master#egg=ipython-1.0.dev'],
       packages = find_packages(),
       install_requires = [
           "pyzmq >= 13.1.0",
-          "ipython >= 0.13.1"])
+          "ipython >= 1.0.dev"])
