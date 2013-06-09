@@ -91,10 +91,9 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
-        rstr = ""
-        for r in str(self.resources).split(";"):
-            rstr += "#$ -l %s\n" % r
-        self.context["resources"] = rstr
+        self.context["resources"] = "\n".join(["#$ -l %s" % r.strip()
+                                               for r in str(self.resources).split(";")
+                                               if r.strip()])
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
