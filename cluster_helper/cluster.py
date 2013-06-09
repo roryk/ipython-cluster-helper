@@ -73,6 +73,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     batch_file_name = Unicode(unicode("sge_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#$ -V
 #$ -cwd
 #$ -b y
@@ -82,6 +83,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 #$ -N bcbio-ipengine
 #$ -t 1-{n}
 #$ -pe {pename} {cores}
+{resources}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
       ' '.join(timeout_params)))
@@ -89,6 +91,10 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
+        rstr = ""
+        for r in str(self.resources).split(";"):
+            rstr += "#$ -l %s\n" % r
+        self.context["resources"] = rstr
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
@@ -127,6 +133,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     batch_file_name = Unicode(unicode("pbs_engines" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#PBS -V
 #PBS -j oe
 #PBS -S /bin/sh
@@ -248,7 +255,8 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
         """Start the controller by profile or profile_dir."""
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
-def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id):
+def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
+           extra_params):
     """Starts cluster from commandline.
     """
     ns = "cluster_helper.cluster"
@@ -264,6 +272,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id):
          "--profile=%s" % profile,
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
+         "--%s.resources=%s" % (engine_class, extra_params.get("resources", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
          "--%sLauncher.queue='%s'" % (scheduler, queue),
@@ -285,22 +294,27 @@ def _is_up(url_file, n):
         client = Client(url_file)
         up = len(client.ids)
         client.close()
-    except IOError, msg:
+    except IOError:
         return False
     else:
         return up >= n
 
 @contextlib.contextmanager
-def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None):
+def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
+                 start_wait=16, extra_params=None):
     """Provide a view on an ipython cluster for processing.
 
     parallel is a dictionary with:
       - scheduler: The type of cluster to start (lsf, sge).
       - num_jobs: Number of jobs to start.
       - cores_per_job: The number of cores to use for each job.
+      - start_wait: How long to wait for the cluster to startup, in minutes.
+        Defaults to 16 minutes. Set to longer for slow starting clusters.
     """
+    if extra_params is None:
+        extra_params = {}
     delay = 10
-    max_delay = 960
+    max_delay = start_wait * 60
     max_tries = 10
     if profile is None:
         has_throwaway = True
@@ -314,7 +328,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None):
     #cluster_id = ""
     while 1:
         try:
-            _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id)
+            _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id, extra_params)
             break
         except subprocess.CalledProcessError:
             if num_tries > max_tries:
