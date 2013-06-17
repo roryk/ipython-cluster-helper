@@ -300,15 +300,15 @@ def _is_up(url_file, n):
 
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
-                 start_wait=16, extra_params=None):
+                 start_wait=16, extra_params=None, retries=None):
     """Provide a view on an ipython cluster for processing.
 
-    parallel is a dictionary with:
-      - scheduler: The type of cluster to start (lsf, sge).
+      - scheduler: The type of cluster to start (lsf, sge, pbs, torque).
       - num_jobs: Number of jobs to start.
       - cores_per_job: The number of cores to use for each job.
       - start_wait: How long to wait for the cluster to startup, in minutes.
         Defaults to 16 minutes. Set to longer for slow starting clusters.
+      - retries: Number of retries to allow for failed tasks.
     """
     if extra_params is None:
         extra_params = {}
@@ -343,7 +343,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             if slept > max_delay:
                 raise IOError("Cluster startup timed out.")
         client = Client(url_file)
-        yield _get_balanced_blocked_view(client)
+        yield _get_balanced_blocked_view(client, retries)
     finally:
         if client:
             client.close()
@@ -351,9 +351,11 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         if has_throwaway:
             delete_profile(profile)
 
-def _get_balanced_blocked_view(client):
+def _get_balanced_blocked_view(client, retries):
     view = client.load_balanced_view()
-    view.block = True
+    view.set_flags(block=True)
+    if retries:
+        view.set_flags(retries=int(retries))
     return view
 
 # ## Temporary profile management
