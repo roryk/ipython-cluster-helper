@@ -42,8 +42,8 @@ cluster down and deletes the throwaway profile.
 Supported schedulers
 --------------------
 
-Platform LSF ("lsf") and Sun Grid Engine ("sge"). Torque ("torque") is
-functional but not fully tested yet. More to come.
+Platform LSF ("lsf"), Sun Grid Engine ("sge") and Torque ("torque").
+More to come.
 
 Credits
 -------

@@ -254,6 +254,12 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
         """Start the controller by profile or profile_dir."""
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
+def _get_profile_args(profile):
+    if os.path.isdir(profile) and os.path.isabs(profile):
+        return ["--profile-dir=%s" % profile]
+    else:
+        return ["--profile=%s" % profile]
+
 def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
            extra_params):
     """Starts cluster from commandline.
@@ -267,8 +273,8 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--daemonize=True",
          "--IPClusterEngines.early_shutdown=240",
          "--delay=10",
-         "--log-level=%s" % "WARN",
-         "--profile=%s" % profile,
+         "--log-to-file",
+         "--debug",
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources=%s" % (engine_class, extra_params.get("resources", "")),
@@ -277,16 +283,17 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--%sLauncher.queue='%s'" % (scheduler, queue),
          "--cluster-id=%s" % (cluster_id)
          ]
+    args += _get_profile_args(profile)
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
-
     subprocess.check_call(args)
     return cluster_id
 
 def _stop(profile, cluster_id):
-    subprocess.check_call(launcher.ipcluster_cmd_argv +
-                          ["stop", "--profile=%s" % profile,
-                           "--cluster-id=%s" % cluster_id])
+    args = launcher.ipcluster_cmd_argv + \
+           ["stop", "--cluster-id=%s" % cluster_id]
+    args += _get_profile_args(profile)
+    subprocess.check_call(args)
 
 def _is_up(url_file, n):
     try:
@@ -374,7 +381,10 @@ def get_ipython_dir(profile):
     return os.path.join(ipython_dir, profile_dir)
 
 def get_url_file(profile, cluster_id):
-    ipython_dir = get_ipython_dir(profile)
+    if os.path.isdir(profile) and os.path.isabs(profile):
+        ipython_dir = profile
+    else:
+        ipython_dir = get_ipython_dir(profile)
     security_dir = os.path.join(ipython_dir, "security")
     url_file = "ipcontroller-{0}-client.json".format(cluster_id)
     return os.path.join(security_dir, url_file)
