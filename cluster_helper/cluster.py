@@ -125,6 +125,64 @@ def _has_parallel_environment(line):
                 return True
     return False
 
+
+# ## SLURM
+class SLURMLauncher(launcher.BatchSystemLauncher):
+    """A BatchSystemLauncher subclass for SLURM
+    """
+    submit_command = List(['sbatch'], config=True,
+        help="The SLURM submit command ['sbatch']")
+    delete_command = List(['scancel'], config=True,
+        help="The SLURM delete command ['scancel']")
+    job_id_regexp = CRegExp(r'\d+', config=True,
+        help="A regular expression used to get the job id from the output of 'sbatch'")
+
+    batch_file = Unicode(u'', config=True,
+        help="The string that is the batch script template itself.")
+
+    queue_regexp = CRegExp('#SBATCH\W+-p\W+\w')
+    queue_template = Unicode('#SBATCH -p {queue}')
+
+
+class SLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+    """Launch engines using SLURM"""
+    cores = traitlets.Integer(1, config=True)
+    batch_file_name = Unicode(unicode("SLURM_engines" + str(uuid.uuid4())),
+                              config=True, help="batch file name for the engine(s) job.")
+
+    default_template = Unicode(u"""#!/bin/sh
+#SBATCH --job-name ipengine
+#SBATCH --array=1-{n}
+#SBATCH -N 1
+#SBATCH -n {cores}
+#SBATCH -t 00:10:00 # TODO: Pass as parameter
+%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+           ' '.join(timeout_params)))
+
+    def start(self, n):
+        """Start n engines by profile or profile_dir."""
+        self.context["cores"] = self.cores
+        return super(SLURMEngineSetLauncher, self).start(n)
+
+
+class SLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+    """Launch a controller using SLURM."""
+    batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())),
+                              config=True, help="batch file name for the engine(s) job.")
+
+    default_template = Unicode("""#!/bin/sh
+#SLURM --job-name ipcontroller
+#SBATCH -t 00:10:00 # TODO: Pass as parameter
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+     ' '.join(controller_params)))
+
+    def start(self):
+        """Start the controller by profile or profile_dir."""
+        return super(SLURMControllerLauncher, self).start(1)
+
+
 # ## PBS
 class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
