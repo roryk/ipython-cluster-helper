@@ -132,6 +132,7 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
     """
     submit_command = List(['sbatch'], config=True,
         help="The SLURM submit command ['sbatch']")
+    # TODO: Kill without scancel to exit gracefully.
     delete_command = List(['scancel'], config=True,
         help="The SLURM delete command ['scancel']")
     job_id_regexp = CRegExp(r'\d+', config=True,
@@ -151,11 +152,13 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode(u"""#!/bin/sh
+#SBATCH -A a2010002
 #SBATCH --job-name ipengine
-#SBATCH --array=1-{n}
+# SBATCH --array=1-{n}
 #SBATCH -N 1
 #SBATCH -n {cores}
-#SBATCH -t 00:10:00 # TODO: Pass as parameter
+#SBATCH -t 00:10:00
+#SBATCH --qos=seqver
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -163,7 +166,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     def start(self, n):
         """Start n engines by profile or profile_dir."""
         self.context["cores"] = self.cores
-        return super(SLURMEngineSetLauncher, self).start(n)
+        return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
@@ -172,15 +175,17 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode("""#!/bin/sh
-#SLURM --job-name ipcontroller
-#SBATCH -t 00:10:00 # TODO: Pass as parameter
+#SBATCH -A a2010002
+#SBATCH --job-name ipcontroller
+#SBATCH -t 00:10:00
+#SBATCH --qos=seqver
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
-        return super(SLURMControllerLauncher, self).start(1)
+        return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
 # ## PBS
@@ -296,27 +301,30 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
         """Start n engines by profile or profile_dir."""
         return super(BcbioPBSPROEngineSetLauncher, self).start(n)
 
+
 class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBSPro."""
 
     batch_file_name = Unicode(u'pbspro_controller', config=True,
         help="batch file name for the controller job.")
-    default_template= Unicode("""#!/bin/sh
+    default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
+
 def _get_profile_args(profile):
     if os.path.isdir(profile) and os.path.isabs(profile):
         return ["--profile-dir=%s" % profile]
     else:
         return ["--profile=%s" % profile]
+
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
            extra_params):
@@ -344,14 +352,21 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
+
+    print("\n" * 4)
+    print(args)
+    print("\n" * 4)
+
     subprocess.check_call(args)
     return cluster_id
+
 
 def _stop(profile, cluster_id):
     args = launcher.ipcluster_cmd_argv + \
            ["stop", "--cluster-id=%s" % cluster_id]
     args += _get_profile_args(profile)
     subprocess.check_call(args)
+
 
 def _is_up(url_file, n):
     try:
@@ -362,6 +377,7 @@ def _is_up(url_file, n):
         return False
     else:
         return up >= n
+
 
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
