@@ -241,12 +241,13 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
     queue_regexp = CRegExp('#PBS\W+-q\W+\$?\w+')
     queue_template = Unicode('#PBS -q {queue}')
 
+
 class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBS"""
     cores = traitlets.Integer(1, config=True)
     batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
-    default_template= Unicode(u"""#!/bin/sh
+    default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -j oe
 #PBS -N ipengine
@@ -262,23 +263,25 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
         self.context["cores"] = self.cores
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
 
+
 class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBS."""
     batch_file_name = Unicode(unicode("torque_controller" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
 
-    default_template= Unicode("""#!/bin/sh
+    default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
 #PBS -j oe
 #PBS -l walltime=239:00:00
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
         return super(BcbioTORQUEControllerLauncher, self).start(1)
+
 
 # ## PBSPro
 class PBSPROLauncher(launcher.PBSLauncher):
@@ -286,11 +289,12 @@ class PBSPROLauncher(launcher.PBSLauncher):
     job_array_regexp = CRegExp('#PBS\W+-J\W+[\w\d\-\$]+')
     job_array_template = Unicode('#PBS -J 1-{n}')
 
+
 class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBSPro"""
     batch_file_name = Unicode(u'pbspro_engines', config=True,
         help="batch file name for the engine(s) job.")
-    default_template= Unicode(u"""#!/bin/sh
+    default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N ipengine
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
@@ -352,10 +356,6 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
-
-    print("\n" * 4)
-    print(args)
-    print("\n" * 4)
 
     subprocess.check_call(args)
     return cluster_id
