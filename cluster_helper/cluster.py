@@ -144,7 +144,7 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
     queue_template = Unicode('#SBATCH -p {queue}')
 
 
-class SLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Launch engines using SLURM"""
     cores = traitlets.Integer(1, config=True)
     batch_file_name = Unicode(unicode("SLURM_engines" + str(uuid.uuid4())),
@@ -166,7 +166,7 @@ class SLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         return super(SLURMEngineSetLauncher, self).start(n)
 
 
-class SLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using SLURM."""
     batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
@@ -416,12 +416,14 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         if has_throwaway:
             delete_profile(profile)
 
+
 def _get_balanced_blocked_view(client, retries):
     view = client.load_balanced_view()
     view.set_flags(block=True)
     if retries:
         view.set_flags(retries=int(retries))
     return view
+
 
 # ## Temporary profile management
 
@@ -437,6 +439,7 @@ def get_ipython_dir(profile):
     ipython_dir = proc.stdout.read().strip()
     profile_dir = "profile_{0}".format(profile)
     return os.path.join(ipython_dir, profile_dir)
+
 
 def get_url_file(profile, cluster_id):
     if os.path.isdir(profile) and os.path.isabs(profile):
