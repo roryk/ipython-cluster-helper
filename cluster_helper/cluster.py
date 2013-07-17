@@ -155,11 +155,11 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH -A a2010002
 #SBATCH --job-name ipengine
 # SBATCH --array=1-{n}
-#SBATCH -N 1
-#SBATCH -n {cores}
+#SBATCH -N {n}
+# SBATCH -n {cores}
 #SBATCH -t 00:10:00
-#SBATCH --qos=seqver
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+#SBATCH --qos=short
+srun -N {n} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
 
@@ -178,7 +178,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -A a2010002
 #SBATCH --job-name ipcontroller
 #SBATCH -t 00:10:00
-#SBATCH --qos=seqver
+#SBATCH --qos=short
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
