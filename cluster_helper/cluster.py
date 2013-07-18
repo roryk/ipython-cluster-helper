@@ -34,6 +34,7 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
                      "--HeartMonitor.period=15000"]
 
+
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
@@ -147,17 +148,16 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
 
 class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Launch engines using SLURM"""
-    cores = traitlets.Integer(1, config=True)
+    account = traitlets.Unicode("", config=True)
+    timelimit = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("SLURM_engines" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode(u"""#!/bin/sh
-#SBATCH -A a2010002
+#SBATCH -A {account}
 #SBATCH --job-name ipengine
-# SBATCH --array=1-{n}
 #SBATCH -N {n}
-# SBATCH -n {cores}
-#SBATCH -t 00:10:00
+#SBATCH -t {timelimit}
 #SBATCH --qos=short
 srun -N {n} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
@@ -165,19 +165,22 @@ srun -N {n} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
-        self.context["cores"] = self.cores
+        self.context["account"] = self.account
+        self.context["timelimit"] = self.timelimit
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using SLURM."""
+    account = traitlets.Unicode("", config=True)
+    timelimit = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode("""#!/bin/sh
-#SBATCH -A a2010002
+#SBATCH -A {account}
 #SBATCH --job-name ipcontroller
-#SBATCH -t 00:10:00
+#SBATCH -t {timelimit}
 #SBATCH --qos=short
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
@@ -185,6 +188,8 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 
     def start(self):
         """Start the controller by profile or profile_dir."""
+        self.context["account"] = self.account
+        self.context["timelimit"] = self.timelimit
         return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
@@ -356,6 +361,11 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
+    elif scheduler in ["SLURM"]:
+        args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
+        args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
+        args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
+        args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
 
     subprocess.check_call(args)
     return cluster_id

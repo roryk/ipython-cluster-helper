@@ -24,8 +24,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    params = {'account': 'a2010002',
+              'qos': 'short',
+              'timelimit': '00:10:00'}
+
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
-                      profile=args.profile) as view:
+                      profile=args.profile, extra_params=params) as view:
         print "First check to see if we can talk to the engines."
         results = view.map(lambda x: "hello world!", range(5))
         print ("This long computation that waits for 5 seconds before returning "
