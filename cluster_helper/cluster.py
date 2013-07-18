@@ -120,6 +120,7 @@ def _find_parallel_environment():
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
 
+
 def _has_parallel_environment(line):
     if line.startswith("allocation_rule"):
         if line.find("$pe_slots") >= 0 or line.find("$fill_up") >= 0:
@@ -158,7 +159,6 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH --job-name ipengine
 #SBATCH -N {n}
 #SBATCH -t {timelimit}
-#SBATCH --qos=short
 srun -N {n} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -181,7 +181,6 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -A {account}
 #SBATCH --job-name ipcontroller
 #SBATCH -t {timelimit}
-#SBATCH --qos=short
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
