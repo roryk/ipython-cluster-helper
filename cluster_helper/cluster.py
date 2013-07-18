@@ -149,6 +149,7 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
 
 class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Launch engines using SLURM"""
+    machines = traitlets.Integer(1, config=True)
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("SLURM_engines" + str(uuid.uuid4())),
@@ -157,14 +158,15 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     default_template = Unicode(u"""#!/bin/sh
 #SBATCH -A {account}
 #SBATCH --job-name ipengine
-#SBATCH -N {n}
+#SBATCH -N {machines}
 #SBATCH -t {timelimit}
-srun -N {n} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+srun -N {machines} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
+        self.context["machines"] = self.machines
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
@@ -361,6 +363,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
     elif scheduler in ["SLURM"]:
+        args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
         args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
         args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
         args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
