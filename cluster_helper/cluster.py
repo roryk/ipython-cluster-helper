@@ -28,11 +28,11 @@ from IPython.utils.traitlets import (List, Unicode, CRegExp)
 # from controller.
 # Makes engine pingback shutdown higher, since this is
 # not consecutive misses.
-timeout_params = ["--timeout=30", "--IPEngineApp.wait_for_url_file=960",
+timeout_params = ["--timeout=180", "--IPEngineApp.wait_for_url_file=960",
                   "--EngineFactory.max_heartbeat_misses=100"]
 controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
-                     "--HeartMonitor.period=15000"]
+                     "--HeartMonitor.period=36000"]
 
 
 # ## Platform LSF
@@ -382,7 +382,7 @@ def _stop(profile, cluster_id):
 
 def _is_up(url_file, n):
     try:
-        client = Client(url_file)
+        client = Client(url_file, timeout=120)
         up = len(client.ids)
         client.close()
     except IOError:
@@ -435,7 +435,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             slept += delay
             if slept > max_delay:
                 raise IOError("Cluster startup timed out.")
-        client = Client(url_file)
+        client = Client(url_file, timeout=120)
         yield _get_balanced_blocked_view(client, retries)
     finally:
         if client:
