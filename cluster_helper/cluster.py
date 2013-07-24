@@ -16,6 +16,7 @@ import time
 
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
+from IPython.parallel import error as iperror
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
@@ -297,9 +298,11 @@ def _stop(profile, cluster_id):
 
 def _is_up(url_file, n):
     try:
-        client = Client(url_file, timeout=120)
+        client = Client(url_file, timeout=180)
         up = len(client.ids)
         client.close()
+    except iperror.TimeoutError:
+        return False
     except IOError:
         return False
     else:
@@ -321,6 +324,8 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         extra_params = {}
     delay = 10
     max_delay = start_wait * 60
+    # Increase default delay without changing max_delay for back compatibility
+    delay = delay * 3
     max_tries = 10
     if profile is None:
         has_throwaway = True
@@ -349,7 +354,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             slept += delay
             if slept > max_delay:
                 raise IOError("Cluster startup timed out.")
-        client = Client(url_file, timeout=120)
+        client = Client(url_file, timeout=180)
         yield _get_balanced_blocked_view(client, retries)
     finally:
         if client:
