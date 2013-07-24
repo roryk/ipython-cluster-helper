@@ -42,8 +42,10 @@ cluster down and deletes the throwaway profile.
 Supported schedulers
 --------------------
 
-Platform LSF ("lsf"), Sun Grid Engine ("sge") and Torque ("torque").
-More to come.
+Platform LSF ("lsf"), Sun Grid Engine ("sge"), Torque ("torque") and
+SLURM.
+
+More to come?
 
 Credits
 -------

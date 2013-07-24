@@ -363,6 +363,14 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
     elif scheduler in ["SLURM"]:
+        # SLURM cannot get resource atts (native specification) as SGE does
+        slurm_atrs = {}
+        extra_params = extra_params['resources'].split(';')
+        for parm in extra_params:
+            atr = parm.split('=')
+            slurm_atrs[atr[0]] = atr[1]
+        extra_params = slurm_atrs
+
         args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
         args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
         args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
