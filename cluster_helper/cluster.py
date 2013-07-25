@@ -85,6 +85,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 #$ -t 1-{n}
 #$ -pe {pename} {cores}
 {resources}
+echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
       ' '.join(timeout_params)))
