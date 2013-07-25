@@ -134,8 +134,9 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
     """
     submit_command = List(['sbatch'], config=True,
         help="The SLURM submit command ['sbatch']")
-    # TODO: Kill without scancel to exit gracefully.
-    delete_command = List(['scancel'], config=True,
+    # Send SIGKILL instead of term, otherwise the job is "CANCELLED", not
+    # "FINISHED"
+    delete_command = List(['scancel --signal=KILL'], config=True,
         help="The SLURM delete command ['scancel']")
     job_id_regexp = CRegExp(r'\d+', config=True,
         help="A regular expression used to get the job id from the output of 'sbatch'")
@@ -366,6 +367,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         # SLURM cannot get resource atts (native specification) as SGE does
         slurm_atrs = {}
         extra_params = extra_params['resources'].split(';')
+
         for parm in extra_params:
             atr = parm.split('=')
             slurm_atrs[atr[0]] = atr[1]

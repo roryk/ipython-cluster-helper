@@ -22,11 +22,14 @@ if __name__ == "__main__":
                         type=int, help="number of cores for each job.")
     parser.add_argument("--profile", dest="profile", default=None,
                         help="Optional profile to test.")
+    parser.add_argument("--resources", dest="resources", default=None,
+                        help="Native specification flags to the scheduler")
 
     args = parser.parse_args()
+    args.resources = {'resources': args.resources}
 
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
-                      profile=args.profile, extra_params=params) as view:
+                      profile=args.profile, extra_params=args.resources) as view:
         print "First check to see if we can talk to the engines."
         results = view.map(lambda x: "hello world!", range(5))
         print ("This long computation that waits for 5 seconds before returning "
