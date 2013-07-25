@@ -29,11 +29,11 @@ from IPython.utils.traitlets import (List, Unicode, CRegExp)
 # from controller.
 # Makes engine pingback shutdown higher, since this is
 # not consecutive misses.
-timeout_params = ["--timeout=180", "--IPEngineApp.wait_for_url_file=960",
+timeout_params = ["--timeout=360", "--IPEngineApp.wait_for_url_file=960",
                   "--EngineFactory.max_heartbeat_misses=100"]
 controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
-                     "--HeartMonitor.period=36000"]
+                     "--HeartMonitor.period=72000"]
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
