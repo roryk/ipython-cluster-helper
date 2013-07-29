@@ -12,5 +12,5 @@ setup(name = "ipython-cluster-helper",
       dependency_links = ['http://github.com/ipython/ipython/tarball/master#egg=ipython-1.0.dev'],
       packages = find_packages(),
       install_requires = [
-          "pyzmq >= 13.1.0",
+          "pyzmq >= 2.1.11",
           "ipython >= 0.13.2"])
