@@ -43,7 +43,7 @@ Supported schedulers
 --------------------
 
 Platform LSF ("lsf"), Sun Grid Engine ("sge"), Torque ("torque") and
-SLURM.
+SLURM ("slurm").
 
 More to come?
 
