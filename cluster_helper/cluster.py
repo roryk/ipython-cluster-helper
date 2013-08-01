@@ -103,6 +103,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -S /bin/sh
+#$ -cwd
 #$ -N ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
