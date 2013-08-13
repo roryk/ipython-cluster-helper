@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="example script for doing parallel "
                                      "work with IPython.")
     parser.add_argument("--scheduler", dest='scheduler', required=True,
-                        help="scheduler to use (lsf, sge, torque or pbs)")
+                        help="scheduler to use (lsf, sge, torque, slurm, or pbs)")
     parser.add_argument("--queue", dest='queue', required=True,
                         help="queue to use on scheduler.")
     parser.add_argument("--num_jobs", dest='num_jobs', required=True,
