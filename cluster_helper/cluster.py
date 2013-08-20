@@ -434,7 +434,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
 
     cluster_id = str(uuid.uuid4())
     url_file = get_url_file(profile, cluster_id)
-    #cluster_id = ""
+
     while 1:
         try:
             _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id, extra_params)
