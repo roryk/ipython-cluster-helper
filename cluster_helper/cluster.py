@@ -13,6 +13,8 @@ import uuid
 import shutil
 import subprocess
 import time
+from distutils.version import LooseVersion
+import sys
 
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
@@ -152,7 +154,41 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
 
 
 class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
-    """Launch engines using SLURM"""
+    """Custom launcher handling heterogeneous clusters on SLURM
+    """
+    batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
+    cores = traitlets.Integer(1, config=True)
+    default_template = traitlets.Unicode("""#!/bin/sh
+#SBATCH -p {queue}
+#SBATCH -J bcbio-ipengine[1-{n}]
+#SBATCH -o bcbio-ipengine.out.%%j
+#SBATCH -e bcbio-ipengine.err.%%j
+#SBATCH --cpus-per-task={cores}
+#SBATCH --array=1-{n}
+%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
+    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+           ' '.join(timeout_params)))
+
+    def start(self, n):
+        self.context["cores"] = self.cores
+        return super(BcbioLSFEngineSetLauncher, self).start(n)
+
+class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+    batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
+    "-".join( str(uuid.uuid4))
+    default_template = traitlets.Unicode("""#!/bin/sh
+#SBATCH -J bcbio-ipcontroller
+#SBATCH -o bcbio-ipcontroller.out.%%j
+#SBATCH -e bcbio-ipcontroller.err.%%j
+%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
+    """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+         ' '.join(controller_params)))
+    def start(self):
+        return super(BcbioSLURMControllerLauncher, self).start()
+
+
+class BcbioOLDSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+    """Launch engines using SLURM for version < 2.6"""
     machines = traitlets.Integer(1, config=True)
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
@@ -176,8 +212,8 @@ srun -N {machines} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{clu
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 
-class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
-    """Launch a controller using SLURM."""
+class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
+    """Launch a controller using SLURM for versions < 2.6"""
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())),
@@ -346,8 +382,18 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     """
     ns = "cluster_helper.cluster"
     scheduler = scheduler.upper()
+    if scheduler == "SLURM" and _slurm_is_old():
+        scheduler = "OLDSLURM"
     engine_class = "Bcbio%sEngineSetLauncher" % scheduler
     controller_class = "Bcbio%sControllerLauncher" % scheduler
+    if not (engine_class in globals() and controller_class in globals()):
+        print ("The engine and controller class %s and %s are not "
+               "defined. " % (engine_class, controller_class))
+        print ("This may be due to ipython-cluster-helper not supporting "
+               "your scheduler. If it should, please file a bug report at "
+               "http://github.com/roryk/ipython-cluster-helper. Thanks!")
+        sys.exit(1)
+
     args = launcher.ipcluster_cmd_argv + \
         ["start",
          "--daemonize=True",
@@ -367,20 +413,21 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
     elif scheduler in ["SLURM"]:
-        # SLURM cannot get resource atts (native specification) as SGE does
-        slurm_atrs = {}
-        extra_params = extra_params['resources'].split(';')
+        if _slurm_is_old():
+            # SLURM cannot get resource atts (native specification) as SGE does
+            slurm_atrs = {}
+            extra_params = extra_params['resources'].split(';')
 
-        for parm in extra_params:
-            atr = parm.split('=')
-            slurm_atrs[atr[0]] = atr[1]
-        extra_params = slurm_atrs
+            for parm in extra_params:
+                atr = parm.split('=')
+                slurm_atrs[atr[0]] = atr[1]
+            extra_params = slurm_atrs
 
-        args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
-        args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
-        args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
-        args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
-        args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
+            args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
+            args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
+            args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
+            args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
+            args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
 
     subprocess.check_call(args)
     return cluster_id
@@ -469,6 +516,13 @@ def _get_balanced_blocked_view(client, retries):
         view.set_flags(retries=int(retries))
     return view
 
+def _slurm_is_old():
+    return LooseVersion(_slurm_version()) < LooseVersion("2.6")
+
+def _slurm_version():
+    version_line = subprocess.Popen("sinfo -V", shell=True,
+                                    stdout=subprocess.PIPE).communicate()[0]
+    return version_line.split()[1]
 
 # ## Temporary profile management
 
