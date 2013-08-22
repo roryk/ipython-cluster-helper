@@ -272,6 +272,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
 #PBS -q {queue}
 #PBS -N bcbio-ipengine
 #PBS -t 1-{n}
+{mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
       ' '.join(timeout_params)))
@@ -438,7 +439,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources=%s" % (engine_class, extra_params.get("resources", "")),
-         "--%s.mem=%s" % (engine_class, extra_params.get("mem", "")),
+         "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
          "--%sLauncher.queue='%s'" % (scheduler, queue),
