@@ -281,7 +281,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
         if self.mem:
-            self.context["mem"] = "#PBS -l vmem=%sgb" % self.mem
+            self.context["mem"] = "#PBS -l mem=%sgb" % self.mem
         else:
             self.context["mem"] = ""
         return super(BcbioPBSEngineSetLauncher, self).start(n)
@@ -339,7 +339,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
         """Start n engines by profile or profile_dir."""
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#PBS -l vmem=%sgb" % self.mem
+            self.context["mem"] = "#PBS -l mem=%sgb" % self.mem
         else:
             self.context["mem"] = ""
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
