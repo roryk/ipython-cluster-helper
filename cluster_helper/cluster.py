@@ -7,6 +7,7 @@ Borrowed from Brad Chapman's implementation:
 https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/distributed/ipython.py
 """
 import contextlib
+import math
 import os
 import pipes
 import uuid
@@ -44,18 +45,26 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """
     batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -q {queue}
 #BSUB -J bcbio-ipengine[1-{n}]
 #BSUB -oo bcbio-ipengine.bsub.%%J
 #BSUB -n {cores}
 #BSUB -R "span[hosts=1]"
+{mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
         self.context["cores"] = self.cores
+        if self.mem:
+            # scale memory to kb
+            mem = int(float(self.mem) * 1024.0 * 1024.0)
+            self.context["mem"] = "#BSUB -M %s" % mem
+        else:
+            self.context["mem"] = ""
         return super(BcbioLSFEngineSetLauncher, self).start(n)
 
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
@@ -78,6 +87,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
+    mem = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#$ -V
 #$ -cwd
 #$ -b y
@@ -87,6 +97,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 #$ -N bcbio-ipengine
 #$ -t 1-{n}
 #$ -pe {pename} {cores}
+{mem}
 {resources}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
@@ -95,6 +106,10 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 
     def start(self, n):
         self.context["cores"] = self.cores
+        if self.mem:
+            self.context["mem"] = "#$ -l mem_free=%sG" % self.mem
+        else:
+            self.context["mem"] = ""
         self.context["pename"] = str(self.pename)
         self.context["resources"] = "\n".join(["#$ -l %s" % r.strip()
                                                for r in str(self.resources).split(";")
@@ -158,6 +173,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """
     batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -p {queue}
 #SBATCH -J bcbio-ipengine[1-{n}]
@@ -165,12 +181,19 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH -e bcbio-ipengine.err.%%j
 #SBATCH --cpus-per-task={cores}
 #SBATCH --array=1-{n}
+{mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
         self.context["cores"] = self.cores
+        if self.mem:
+            # scale memory to Mb and divide by cores
+            mem = int(math.ceil(float(self.mem) * 1024.0 / self.cores))
+            self.context["mem"] = "#SBATCH --mem-per-cpu=%s" % mem
+        else:
+            self.context["mem"] = ""
         return super(BcbioLSFEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
@@ -240,6 +263,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     """
     batch_file_name = Unicode(unicode("pbs_engines" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     pename = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#PBS -V
@@ -255,6 +279,10 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
+        if self.mem:
+            self.context["mem"] = "#PBS -l vmem=%sgb" % self.mem
+        else:
+            self.context["mem"] = ""
         return super(BcbioPBSEngineSetLauncher, self).start(n)
 
 
@@ -291,6 +319,7 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
 class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBS"""
     cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
     default_template = Unicode(u"""#!/bin/sh
@@ -299,6 +328,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 #PBS -N ipengine
 #PBS -t 1-{n}
 #PBS -l nodes=1:ppn={cores}
+{mem}
 #PBS -l walltime=239:00:00
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
@@ -307,6 +337,10 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
     def start(self, n):
         """Start n engines by profile or profile_dir."""
         self.context["cores"] = self.cores
+        if self.mem:
+            self.context["mem"] = "#PBS -l vmem=%sgb" % self.mem
+        else:
+            self.context["mem"] = ""
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
 
 
@@ -404,6 +438,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources=%s" % (engine_class, extra_params.get("resources", "")),
+         "--%s.mem=%s" % (engine_class, extra_params.get("mem", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
          "--%sLauncher.queue='%s'" % (scheduler, queue),
