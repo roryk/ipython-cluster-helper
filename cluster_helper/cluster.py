@@ -69,7 +69,6 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
 
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
-    "-".join( str(uuid.uuid4))
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -J bcbio-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
@@ -171,7 +170,7 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
 class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Custom launcher handling heterogeneous clusters on SLURM
     """
-    batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
+    batch_file_name = Unicode(unicode("SLURM_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
@@ -194,11 +193,10 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
             self.context["mem"] = "#SBATCH --mem-per-cpu=%s" % mem
         else:
             self.context["mem"] = ""
-        return super(BcbioLSFEngineSetLauncher, self).start(n)
+        return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
-    batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
-    "-".join( str(uuid.uuid4))
+    batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())))
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -J bcbio-ipcontroller
 #SBATCH -o bcbio-ipcontroller.out.%%j
@@ -207,7 +205,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
          ' '.join(controller_params)))
     def start(self):
-        return super(BcbioSLURMControllerLauncher, self).start()
+        return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
 class BcbioOLDSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
