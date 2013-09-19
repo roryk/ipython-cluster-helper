@@ -576,7 +576,7 @@ def get_url_file(profile, cluster_id):
         # Return full_path if one is given
         return  os.path.join(profile, "security", url_file)
 
-    return get_security_file(url_file, profile)
+    return os.path.join(locate_profile(profile), "security", url_file)
 
 def delete_profile(profile):
     MAX_TRIES = 10
