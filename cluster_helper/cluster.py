@@ -20,8 +20,10 @@ import sys
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.parallel import error as iperror
+from IPython.utils.path import locate_profile, get_security_file
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
+
 
 # ## Custom launchers
 
@@ -566,30 +568,19 @@ def create_throwaway_profile():
     subprocess.check_call(cmd, shell=True)
     return profile
 
-
-def get_ipython_dir(profile):
-    proc = subprocess.Popen("ipython locate", stdout=subprocess.PIPE, shell=True)
-    ipython_dir = proc.stdout.read().strip()
-    profile_dir = "profile_{0}".format(profile)
-    return os.path.join(ipython_dir, profile_dir)
-
-
 def get_url_file(profile, cluster_id):
-    if os.path.isdir(profile) and os.path.isabs(profile):
-        ipython_dir = profile
-    else:
-        ipython_dir = get_ipython_dir(profile)
-    security_dir = os.path.join(ipython_dir, "security")
-    url_file = "ipcontroller-{0}-client.json".format(cluster_id)
-    return os.path.join(security_dir, url_file)
 
+    url_file = "ipcontroller-{0}-client.json".format(cluster_id)
+
+    if os.path.isdir(profile) and os.path.isabs(profile):
+        # Return full_path if one is given
+        return  os.path.join(profile, "security", url_file)
+
+    return os.path.join(locate_profile(profile), "security", url_file)
 
 def delete_profile(profile):
     MAX_TRIES = 10
-    proc = subprocess.Popen("ipython locate", stdout=subprocess.PIPE, shell=True)
-    ipython_dir = proc.stdout.read().strip()
-    profile_dir = "profile_{0}".format(profile)
-    dir_to_remove = os.path.join(ipython_dir, profile_dir)
+    dir_to_remove = locate_profile(profile)
     if os.path.exists(dir_to_remove):
         num_tries = 0
         while True:
