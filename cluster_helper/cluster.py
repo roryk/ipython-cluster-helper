@@ -581,9 +581,7 @@ def get_url_file(profile, cluster_id):
 def delete_profile(profile):
     MAX_TRIES = 10
     proc = subprocess.Popen("ipython locate", stdout=subprocess.PIPE, shell=True)
-    ipython_dir = proc.stdout.read().strip()
-    profile_dir = "profile_{0}".format(profile)
-    dir_to_remove = os.path.join(ipython_dir, profile_dir)
+    dir_to_remove = locate_profile(profile)
     if os.path.exists(dir_to_remove):
         num_tries = 0
         while True:
