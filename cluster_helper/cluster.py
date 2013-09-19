@@ -20,7 +20,7 @@ import sys
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.parallel import error as iperror
-from IPython.utils.path import locate_profile
+from IPython.utils.path import locate_profile, get_security_file
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
@@ -569,14 +569,14 @@ def create_throwaway_profile():
     return profile
 
 def get_url_file(profile, cluster_id):
-    if os.path.isdir(profile) and os.path.isabs(profile):
-        ipython_dir = profile
-    else:
-        ipython_dir = locate_profile(profile)
-    security_dir = os.path.join(ipython_dir, "security")
-    url_file = "ipcontroller-{0}-client.json".format(cluster_id)
-    return os.path.join(security_dir, url_file)
 
+    url_file = "ipcontroller-{0}-client.json".format(cluster_id)
+
+    if os.path.isdir(profile) and os.path.isabs(profile):
+        # Return full_path if one is given
+        return  os.path.join(profile, "security", url_file)
+
+    return get_security_file(url_file, profile)
 
 def delete_profile(profile):
     MAX_TRIES = 10
