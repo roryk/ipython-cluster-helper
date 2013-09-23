@@ -232,7 +232,7 @@ srun -N {machines} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{clu
         self.context["machines"] = self.machines
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
-        return super(BcbioSLURMEngineSetLauncher, self).start(n)
+        return super(BcbioOLDSLURMEngineSetLauncher, self).start(n)
 
 
 class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
@@ -254,7 +254,7 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
         """Start the controller by profile or profile_dir."""
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
-        return super(BcbioSLURMControllerLauncher, self).start(1)
+        return super(BcbioOLDSLURMControllerLauncher, self).start(1)
 
 
 # ## PBS
@@ -448,22 +448,21 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if scheduler in ["SGE"]:
         args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
-    elif scheduler in ["SLURM"]:
-        if _slurm_is_old():
-            # SLURM cannot get resource atts (native specification) as SGE does
-            slurm_atrs = {}
-            extra_params = extra_params['resources'].split(';')
+    elif scheduler in ["OLDSLURM"]:
+        # SLURM cannot get resource atts (native specification) as SGE does
+        slurm_atrs = {}
+        extra_params = extra_params['resources'].split(';')
 
-            for parm in extra_params:
-                atr = parm.split('=')
-                slurm_atrs[atr[0]] = atr[1]
-            extra_params = slurm_atrs
+        for parm in extra_params:
+            atr = parm.split('=')
+            slurm_atrs[atr[0]] = atr[1]
+        extra_params = slurm_atrs
 
-            args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
-            args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
-            args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
-            args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
-            args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
+        args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
+        args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
+        args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
+        args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
+        args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
 
     subprocess.check_call(args)
     return cluster_id
