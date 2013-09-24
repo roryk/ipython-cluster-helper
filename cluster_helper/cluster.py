@@ -141,13 +141,11 @@ def _find_parallel_environment():
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
 
-
 def _has_parallel_environment(line):
     if line.startswith("allocation_rule"):
         if line.find("$pe_slots") >= 0 or line.find("$fill_up") >= 0:
                 return True
     return False
-
 
 # ## SLURM
 class SLURMLauncher(launcher.BatchSystemLauncher):
@@ -410,6 +408,23 @@ def _get_profile_args(profile):
     else:
         return ["--profile=%s" % profile]
 
+def _scheduler_resources(scheduler, params):
+    """Retrieve custom resource tweaks for specific schedulers.
+    Handles SGE parallel environments, which allow multicore jobs
+    but are specific to different environments.
+    """
+    resources = params.get("resources", "").split(";")
+    pename = None
+    if scheduler in ["SGE"]:
+        for r in resources:
+            if r.startswith("pename="):
+                _, pename = r.split("=")
+                resources.remove(r)
+                break
+        if pename is None:
+            pename = _find_parallel_environment()
+
+    return ";".join(resources), pename
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
            extra_params):
@@ -428,6 +443,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
                "your scheduler. If it should, please file a bug report at "
                "http://github.com/roryk/ipython-cluster-helper. Thanks!")
         sys.exit(1)
+    resources, pename = _scheduler_resources(scheduler, extra_params)
 
     args = launcher.ipcluster_cmd_argv + \
         ["start",
@@ -438,7 +454,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--debug",
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
-         "--%s.resources=%s" % (engine_class, extra_params.get("resources", "")),
+         "--%s.resources=%s" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
@@ -446,8 +462,8 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--cluster-id=%s" % (cluster_id)
          ]
     args += _get_profile_args(profile)
-    if scheduler in ["SGE"]:
-        args += ["--%s.pename=%s" % (engine_class, _find_parallel_environment())]
+    if pename:
+        args += ["--%s.pename=%s" % (engine_class, pename)]
     elif scheduler in ["OLDSLURM"]:
         # SLURM cannot get resource atts (native specification) as SGE does
         slurm_atrs = {}
