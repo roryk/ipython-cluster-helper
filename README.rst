@@ -52,4 +52,13 @@ Credits
 
 The cool parts of this were ripped from `bcbio-nextgen`_.
 
+Contributors
+------------
+* Brad Chapman (@bchapman)
+* @mariogiov 
+* Valentine Svensson (@vals)
+* Roman Valls (@brainstorm)
+* Rory Kirchner (@roryk)
+
+
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
