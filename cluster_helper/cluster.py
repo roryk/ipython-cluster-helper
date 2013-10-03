@@ -416,8 +416,8 @@ def _scheduler_resources(scheduler, params):
     resources = params.get("resources", [])
     if isinstance(resources, basestring):
         resources = resources.split(";")
+    pename = None
     if scheduler in ["SGE"]:
-        pename = None
         for r in resources:
             if r.startswith("pename="):
                 _, pename = r.split("=")
