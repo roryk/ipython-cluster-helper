@@ -413,7 +413,9 @@ def _scheduler_resources(scheduler, params):
     Handles SGE parallel environments, which allow multicore jobs
     but are specific to different environments.
     """
-    resources = params.get("resources", "").split(";")
+    resources = params.get("resources", [])
+    if isinstance(resources, basestring):
+        resources = resources.split(";")
     pename = None
     if scheduler in ["SGE"]:
         for r in resources:
@@ -454,7 +456,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--debug",
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
-         "--%s.resources=%s" % (engine_class, resources),
+         "--%s.resources='%s'" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
@@ -467,9 +469,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     elif scheduler in ["OLDSLURM"]:
         # SLURM cannot get resource atts (native specification) as SGE does
         slurm_atrs = {}
-        extra_params = extra_params['resources'].split(';')
-
-        for parm in extra_params:
+        for parm in resources.split(";"):
             atr = parm.split('=')
             slurm_atrs[atr[0]] = atr[1]
         extra_params = slurm_atrs
