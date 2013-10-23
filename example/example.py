@@ -1,6 +1,7 @@
 from cluster_helper.cluster import cluster_view
 import argparse
 import time
+import imp
 
 
 def long_computation(x, y, z):
@@ -44,3 +45,20 @@ if __name__ == "__main__":
         results = view.map(long_computation, range(20), range(20, 40), range(40, 60))
         print results
         print "That took {0} seconds.".format(time.time() - start_time)
+
+        try:
+            imp.find_module('dill')
+            found = True
+        except ImportError:
+            found=False
+
+        if found:
+            def make_closure(a):
+                """make a function with a closure, and return it"""
+                def has_closure(b):
+                    return a * b
+                return has_closure
+            closure = make_closure(5)
+            print "With dill installed, we can pickle closures without an error!"
+            print closure
+            print view.map(closure, [3])

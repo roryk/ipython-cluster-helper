@@ -16,6 +16,7 @@ import subprocess
 import time
 from distutils.version import LooseVersion
 import sys
+import imp
 
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
@@ -23,6 +24,29 @@ from IPython.parallel import error as iperror
 from IPython.utils.path import locate_profile, get_security_file
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
+
+# if dill is available, override pickle with dill pickle
+# this lets us pickle way more things
+def _dill_installed():
+    try:
+        imp.find_module('dill')
+        return True
+    except ImportError:
+        return False
+
+if _dill_installed():
+    import dill
+
+    # disable special function handling
+    from types import FunctionType
+    from IPython.utils.pickleutil import can_map
+
+    can_map.pop(FunctionType, None)
+
+    # fallback to pickle instead of cPickle, so that dill can take over
+    import pickle
+    from IPython.kernel.zmq import serialize
+    serialize.pickle = pickle
 
 
 # ## Custom launchers
@@ -425,6 +449,9 @@ def _scheduler_resources(scheduler, params):
                 break
         if pename is None:
             pename = _find_parallel_environment()
+
+    if not resources:
+        resources = []
 
     return ";".join(resources), pename
 
