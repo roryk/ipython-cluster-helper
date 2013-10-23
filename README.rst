@@ -59,6 +59,7 @@ Contributors
 * Valentine Svensson (@vals)
 * Roman Valls (@brainstorm)
 * Rory Kirchner (@roryk)
+* Luca Beltrame (@lbeltrame)
 
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
