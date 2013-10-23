@@ -47,6 +47,12 @@ SLURM ("slurm").
 
 More to come?
 
+Problems pickling
+-----------------
+If you are having problems pickling the pieces you want to parallelize (you will see errors complaining your
+item cannot be pickled), you might want to install the dill module: https://github.com/uqfoundation/dill. If dill is importable, ipython-cluster-helper
+will use the dill pickle method, which can pickle many items that the Python pickle cannot. 
+
 Credits
 -------
 
@@ -59,6 +65,7 @@ Contributors
 * Valentine Svensson (@vals)
 * Roman Valls (@brainstorm)
 * Rory Kirchner (@roryk)
+* Luca Beltrame (@lbeltrame)
 
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
