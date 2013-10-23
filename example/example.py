@@ -3,12 +3,19 @@ import argparse
 import time
 import imp
 
+from IPython.parallel import require
+
 
 def long_computation(x, y, z):
     import time
     import socket
     time.sleep(1)
     return (socket.gethostname(), x + y + z)
+
+@require("cluster_helper")
+def require_test(x):
+    return True
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="example script for doing parallel "
@@ -62,3 +69,6 @@ if __name__ == "__main__":
             print "With dill installed, we can pickle closures without an error!"
             print closure
             print view.map(closure, [3])
+
+            print "But wrapping functions with @reqiure is broken."
+            print view.map(require_test, [3])
