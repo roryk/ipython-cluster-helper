@@ -35,7 +35,9 @@ def _dill_installed():
     except ImportError:
         return False
 
-if _dill_installed():
+# XXX Currently disabled: needs more testing
+#if _dill_installed():
+if False:
     import dill
 
     # disable special function handling
