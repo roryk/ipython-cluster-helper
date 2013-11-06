@@ -25,6 +25,8 @@ from IPython.utils.path import locate_profile, get_security_file
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
+from slurm import get_slurm_attributes
+
 # if dill is available, override pickle with dill pickle
 # this lets us pickle way more things
 def _dill_installed():
@@ -48,6 +50,7 @@ if _dill_installed():
     from IPython.kernel.zmq import serialize
     serialize.pickle = pickle
 
+DEFAULT_MEM_PER_CPU = 250
 
 # ## Custom launchers
 
@@ -195,8 +198,11 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Custom launcher handling heterogeneous clusters on SLURM
     """
     batch_file_name = Unicode(unicode("SLURM_engine" + str(uuid.uuid4())))
+    machines = traitlets.Integer(1, config=True)
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
+    account = traitlets.Unicode("", config=True)
+    timelimit = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -p {queue}
 #SBATCH -J bcbio-ipengine[1-{n}]
@@ -204,6 +210,9 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH -e bcbio-ipengine.err.%%j
 #SBATCH --cpus-per-task={cores}
 #SBATCH --array=1-{n}
+#SBATCH -A {account}
+#SBATCH -t {timelimit}
+#SBATCH -N {machines}
 {mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
@@ -216,19 +225,36 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
             mem = int(math.ceil(float(self.mem) * 1024.0 / self.cores))
             self.context["mem"] = "#SBATCH --mem-per-cpu=%s" % mem
         else:
-            self.context["mem"] = ""
+            self.context["mem"] = "#SBATCH --mem-per-cpu=%d" % DEFAULT_MEM_PER_CPU
+        self.context["machines"] = self.machines
+        self.context["account"] = self.account
+        self.context["timelimit"] = self.timelimit
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())))
+    account = traitlets.Unicode("", config=True)
+    timelimit = traitlets.Unicode("", config=True)
+    mem = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -J bcbio-ipcontroller
 #SBATCH -o bcbio-ipcontroller.out.%%j
 #SBATCH -e bcbio-ipcontroller.err.%%j
+#SBATCH -A {account}
+#SBATCH -t {timelimit}
+{mem}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
     """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
          ' '.join(controller_params)))
     def start(self):
+        self.context["account"] = self.account
+        self.context["timelimit"] = self.timelimit
+        if self.mem:
+            # scale memory to Mb and divide by cores
+            mem = int(math.ceil(float(self.mem) * 1024.0))
+            self.context["mem"] = "#SBATCH --mem-per-cpu=%s" % mem
+        else:
+            self.context["mem"] = "#SBATCH --mem-per-cpu=%d" % DEFAULT_MEM_PER_CPU
         return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
@@ -485,6 +511,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources='%s'" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
+         "--%s.mem='%s'" % (controller_class, extra_params.get("mem", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
          "--%sLauncher.queue='%s'" % (scheduler, queue),
@@ -493,19 +520,14 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if pename:
         args += ["--%s.pename=%s" % (engine_class, pename)]
-    elif scheduler in ["OLDSLURM"]:
+    elif scheduler in ["OLDSLURM", "SLURM"]:
         # SLURM cannot get resource atts (native specification) as SGE does
-        slurm_atrs = {}
-        for parm in resources.split(";"):
-            atr = parm.split('=')
-            slurm_atrs[atr[0]] = atr[1]
-        extra_params = slurm_atrs
-
-        args += ["--%s.machines=%s" % (engine_class, extra_params.get("machines", "1"))]
-        args += ["--%s.account=%s" % (engine_class, extra_params["account"])]
-        args += ["--%s.account=%s" % (controller_class, extra_params["account"])]
-        args += ["--%s.timelimit=%s" % (engine_class, extra_params["timelimit"])]
-        args += ["--%s.timelimit=%s" % (controller_class, extra_params["timelimit"])]
+        slurm_atrs = get_slurm_attributes(queue, resources)
+        args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "1"))]
+        args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
+        args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
+        args += ["--%s.timelimit=%s" % (engine_class, slurm_atrs["timelimit"])]
+        args += ["--%s.timelimit=%s" % (controller_class, slurm_atrs["timelimit"])]
 
     subprocess.check_call(args)
     return cluster_id

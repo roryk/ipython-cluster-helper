@@ -16,6 +16,8 @@ def long_computation(x, y, z):
 def require_test(x):
     return True
 
+def context_test(x):
+    return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="example script for doing parallel "
@@ -32,11 +34,14 @@ if __name__ == "__main__":
                         help="Optional profile to test.")
     parser.add_argument("--resources", dest="resources", default=None,
                         help="Native specification flags to the scheduler")
+    parser.add_argument("--timeout", dest="timeout", default=15,
+                        help="Time (in minutes) to wait before timing out.")
 
     args = parser.parse_args()
     args.resources = {'resources': args.resources}
 
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
+                      start_wait=args.timeout,
                       profile=args.profile, extra_params=args.resources) as view:
         print "First check to see if we can talk to the engines."
         results = view.map(lambda x: "hello world!", range(5))
@@ -69,6 +74,15 @@ if __name__ == "__main__":
             print "With dill installed, we can pickle closures without an error!"
             print closure
             print view.map(closure, [3])
+
+
+
+            with open("test", "w") as test_handle:
+                print "Does context break it?"
+                print view.map(context_test, [3])
+
+                print "Does context break it with a closure?"
+                print view.map(closure, [3])
 
             print "But wrapping functions with @reqiure is broken."
             print view.map(require_test, [3])
