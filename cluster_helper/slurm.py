@@ -53,12 +53,3 @@ def get_slurm_attributes(queue, resources):
         slurm_atrs["timelimit"] = get_max_timelimit_for_queue(queue)
 
     return slurm_atrs
-
-if __name__ == "__main__":
-    queue = "general"
-    user = get_user()
-    #possible_accounts = get_accounts(user)
-    #queue_accounts = accounts_with_access(queue)
-    print get_account_for_queue(queue)
-#    print get_accounts(user)
-#    print accounts_for_queue(queue)
