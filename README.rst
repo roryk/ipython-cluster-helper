@@ -51,7 +51,7 @@ Problems pickling
 -----------------
 If you are having problems pickling the pieces you want to parallelize (you will see errors complaining your
 item cannot be pickled), you might want to install the dill module: https://github.com/uqfoundation/dill. If dill is importable, ipython-cluster-helper
-will use the dill pickle method, which can pickle many items that the Python pickle cannot. 
+will use the dill pickle method, which can pickle many items that the Python pickle cannot. This is currently not functional as dill has some issues pickling objects that IPython can pickle.
 
 Credits
 -------
@@ -61,7 +61,7 @@ The cool parts of this were ripped from `bcbio-nextgen`_.
 Contributors
 ------------
 * Brad Chapman (@bchapman)
-* @mariogiov 
+* Mario Giovacchini (@mariogiov)
 * Valentine Svensson (@vals)
 * Roman Valls (@brainstorm)
 * Rory Kirchner (@roryk)
