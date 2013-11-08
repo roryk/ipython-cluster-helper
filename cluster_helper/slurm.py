@@ -45,7 +45,7 @@ def get_slurm_attributes(queue, resources):
     slurm_atrs = {}
     if resources:
         for parm in resources.split(";"):
-            atr = parm.strip().split('=')
+            atr = [ a.strip() for a in  parm.split('=') ]
             slurm_atrs[atr[0]] = atr[1]
     if "account" not in slurm_atrs:
         slurm_atrs["account"] = get_account_for_queue(queue)
