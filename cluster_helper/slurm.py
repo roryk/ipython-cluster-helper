@@ -13,7 +13,14 @@ def get_accounts(user):
         account_user = line[1].strip()
         if account and account_user == user:
             accounts.append(account)
-    return set(accounts)
+
+    accounts = set(accounts)
+    try:
+        assert not set(['']).issuperset(accounts)
+    except AssertionError:
+        raise ValueError("No usable accounts were found for user \'{0}\'".format(user))
+
+    return accounts
 
 def get_user():
     out, err = subprocess.Popen("whoami", shell=True,
@@ -31,9 +38,20 @@ def get_account_for_queue(queue):
     the queue and returns the first one
     """
     user = get_user()
+
     possible_accounts = get_accounts(user)
+
     queue_accounts = accounts_with_access(queue)
-    return list(possible_accounts.intersection(queue_accounts))[0]
+    try:
+        assert not set(['']).issuperset(queue_accounts)
+    except AssertionError:
+        raise ValueError("No accounts accessible by user \'{0}\' have access to queue \'{1}\'. Accounts found were: {2}".format(
+                         user, queue, ", ".join(possible_accounts)))
+
+    if "all" in queue_accounts:
+        return possible_accounts.pop()
+    else:
+        return list(possible_accounts.intersection(queue_accounts))[0]
 
 def get_max_timelimit_for_queue(queue):
     cmd = 'sinfo -o "%l" --noheader -p {0}'.format(queue)
@@ -45,7 +63,7 @@ def get_slurm_attributes(queue, resources):
     slurm_atrs = {}
     if resources:
         for parm in resources.split(";"):
-            atr = parm.split('=')
+            atr = [ a.strip() for a in  parm.split('=') ]
             slurm_atrs[atr[0]] = atr[1]
     if "account" not in slurm_atrs:
         slurm_atrs["account"] = get_account_for_queue(queue)
