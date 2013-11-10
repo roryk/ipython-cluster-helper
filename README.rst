@@ -60,12 +60,13 @@ The cool parts of this were ripped from `bcbio-nextgen`_.
 
 Contributors
 ------------
-* Brad Chapman (@bchapman)
+* Brad Chapman (@chapmanb)
 * Mario Giovacchini (@mariogiov)
 * Valentine Svensson (@vals)
 * Roman Valls (@brainstorm)
 * Rory Kirchner (@roryk)
 * Luca Beltrame (@lbeltrame)
+* James Porter (@porterjamesj)
 
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen

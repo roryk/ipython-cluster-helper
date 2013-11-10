@@ -580,6 +580,10 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         has_throwaway = True
         profile = create_throwaway_profile()
     else:
+        # ensure we have an .ipython directory to prevent issues
+        # creating it during parallel startup
+        cmd = "ipython profile create"
+        subprocess.check_call(cmd, shell=True)
         has_throwaway = False
     num_tries = 0
 
