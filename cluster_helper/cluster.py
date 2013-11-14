@@ -252,12 +252,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     def start(self):
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
-        if self.mem:
-            # scale memory to Mb and divide by cores
-            mem = int(math.ceil(float(self.mem) * 1024.0))
-            self.context["mem"] = "#SBATCH --mem-per-cpu=%s" % mem
-        else:
-            self.context["mem"] = "#SBATCH --mem-per-cpu=%d" % DEFAULT_MEM_PER_CPU
+        self.context["mem"] = "#SBATCH --mem-per-cpu=%d" % (DEFAULT_MEM_PER_CPU * 4)
         return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
@@ -530,9 +525,8 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "1"))]
         args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
         args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
-        args += ["--%s.timelimit=%s" % (engine_class, slurm_atrs["timelimit"])]
-        args += ["--%s.timelimit=%s" % (controller_class, slurm_atrs["timelimit"])]
-
+        args += ["--%s.timelimit='%s'" % (engine_class, slurm_atrs["timelimit"])]
+        args += ["--%s.timelimit='%s'" % (controller_class, slurm_atrs["timelimit"])]
     subprocess.check_call(args)
     return cluster_id
 
