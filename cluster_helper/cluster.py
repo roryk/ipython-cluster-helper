@@ -199,7 +199,7 @@ def _queue_can_access_pe(pe_name, queue):
     if not queue.endswith(".q"):
         queue = "%s.q" % queue
     queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
-    for test_pe_name in queue_config["pe_list"]:
+    for test_pe_name in queue_config["pe_list"].split():
         test_pe_name = test_pe_name.split(",")[0].strip()
         if test_pe_name == pe_name:
             return True
