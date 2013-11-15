@@ -159,17 +159,51 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     def start(self):
         return super(BcbioSGEControllerLauncher, self).start()
 
-def _find_parallel_environment():
-    """Find an SGE/OGE parallel environment for running multicore jobs.
+def _find_parallel_environment(queue):
+    """Find an SGE/OGE parallel environment for running multicore jobs in specified queue.
     """
     for name in subprocess.check_output(["qconf", "-spl"]).strip().split():
         if name:
             for line in subprocess.check_output(["qconf", "-sp", name]).split("\n"):
                 if _has_parallel_environment(line):
-                    return name
+                    if _queue_can_access_pe(name, queue):
+                        return name
     raise ValueError("Could not find an SGE environment configured for parallel execution. " \
                      "See %s for SGE setup instructions." %
                      "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
+
+def _parseSGEConf(data):
+    """Handle SGE multiple line output nastiness.
+    From: https://github.com/clovr/vappio/blob/master/vappio-twisted/vappio_tx/load/sge_queue.py
+    """
+    lines = data.split('\n')
+    multiline = False
+    ret = {}
+    for line in lines:
+        line = line.strip()
+        if line:
+            if not multiline:
+                key, value = line.split(' ', 1)
+                value = value.strip().rstrip('\\')
+                ret[key] = value
+            else:
+                # Making use of the fact that the key was created
+                # in the previous iteration and is stil lin scope
+                ret[key] += line
+            multiline = (line[-1] == '\\')
+    return ret
+
+def _queue_can_access_pe(pe_name, queue):
+    """Check if a queue has access to a specific parallel environment, using qconf.
+    """
+    if not queue.endswith(".q"):
+        queue = "%s.q" % queue
+    queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
+    for test_pe_name in queue_config["pe_list"]:
+        test_pe_name = test_pe_name.split(",")[0].strip()
+        if test_pe_name == pe_name:
+            return True
+    return False
 
 def _has_parallel_environment(line):
     if line.startswith("allocation_rule"):
@@ -456,7 +490,7 @@ def _get_profile_args(profile):
     else:
         return ["--profile=%s" % profile]
 
-def _scheduler_resources(scheduler, params):
+def _scheduler_resources(scheduler, params, queue):
     """Retrieve custom resource tweaks for specific schedulers.
     Handles SGE parallel environments, which allow multicore jobs
     but are specific to different environments.
@@ -475,7 +509,7 @@ def _scheduler_resources(scheduler, params):
             else:
                 pass_resources.append(r)
         if pename is None:
-            pename = _find_parallel_environment()
+            pename = _find_parallel_environment(queue)
         resources = pass_resources
 
     return ";".join(resources), pename
@@ -497,7 +531,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
                "your scheduler. If it should, please file a bug report at "
                "http://github.com/roryk/ipython-cluster-helper. Thanks!")
         sys.exit(1)
-    resources, pename = _scheduler_resources(scheduler, extra_params)
+    resources, pename = _scheduler_resources(scheduler, extra_params, queue)
 
     args = launcher.ipcluster_cmd_argv + \
         ["start",
