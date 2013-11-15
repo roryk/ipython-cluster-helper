@@ -576,8 +576,9 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     else:
         # ensure we have an .ipython directory to prevent issues
         # creating it during parallel startup
-        cmd = "ipython profile create"
-        subprocess.check_call(cmd, shell=True)
+        cmd = [sys.executable, "-c", "from IPython import start_ipython; start_ipython()",
+               "profile", "create"]
+        subprocess.check_call(cmd)
         has_throwaway = False
     num_tries = 0
 
@@ -630,8 +631,9 @@ def _slurm_version():
 
 def create_throwaway_profile():
     profile = str(uuid.uuid1())
-    cmd = "ipython profile create {0} --parallel".format(profile)
-    subprocess.check_call(cmd, shell=True)
+    cmd = [sys.executable, "-c", "from IPython import start_ipython; start_ipython()",
+           "profile", "create", profile, "--parallel"]
+    subprocess.check_call(cmd)
     return profile
 
 def get_url_file(profile, cluster_id):
