@@ -59,11 +59,13 @@ def get_max_timelimit_for_queue(queue):
 
 def get_slurm_attributes(queue, resources):
     slurm_atrs = {}
-    default_tl = 60 * 24 * 7 # 1 week default
+    # specially handled resource specifications
+    special_resources = set(["machines", "account", "timelimit"])
+    default_tl = "7-00:00:00" # 1 week default
     if resources:
         for parm in resources.split(";"):
-            atr = [ a.strip() for a in  parm.split('=') ]
-            slurm_atrs[atr[0]] = atr[1]
+            k, v = [ a.strip() for a in  parm.split('=') ]
+            slurm_atrs[k] = v
     if "account" not in slurm_atrs:
         slurm_atrs["account"] = get_account_for_queue(queue)
     if "timelimit" not in slurm_atrs:
@@ -71,5 +73,9 @@ def get_slurm_attributes(queue, resources):
         if tl == "infinite":
             tl = default_tl
         slurm_atrs["timelimit"] = tl
-
-    return slurm_atrs
+    # reconstitute any general attributes to pass along to slurm
+    out_resources = []
+    for k in slurm_atrs:
+        if k not in special_resources:
+            out_resources.append("%s=%s" % (k, slurm_atrs[k]))
+    return ";".join(out_resources), slurm_atrs

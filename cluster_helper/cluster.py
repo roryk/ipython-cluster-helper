@@ -240,6 +240,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     mem = traitlets.Unicode("", config=True)
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -p {queue}
 #SBATCH -J bcbio-ipengine[1-{n}]
@@ -251,6 +252,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH -t {timelimit}
 #SBATCH -N {machines}
 {mem}
+{resources}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -266,6 +268,9 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         self.context["machines"] = self.machines
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
+        self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
+                                               for r in str(self.resources).split(";")
+                                               if r.strip()])
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
@@ -273,6 +278,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
     mem = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -J bcbio-ipcontroller
 #SBATCH -o bcbio-ipcontroller.out.%%j
@@ -280,6 +286,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -A {account}
 #SBATCH -t {timelimit}
 {mem}
+{resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
     """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
          ' '.join(controller_params)))
@@ -287,6 +294,9 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         self.context["mem"] = "#SBATCH --mem-per-cpu=%d" % (DEFAULT_MEM_PER_CPU * 4)
+        self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
+                                               for r in str(self.resources).split(";")
+                                               if r.strip()])
         return super(BcbioSLURMControllerLauncher, self).start(1)
 
 
@@ -532,6 +542,10 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
                "http://github.com/roryk/ipython-cluster-helper. Thanks!")
         sys.exit(1)
     resources, pename = _scheduler_resources(scheduler, extra_params, queue)
+    if scheduler in ["OLDSLURM", "SLURM"]:
+        resources, slurm_atrs = get_slurm_attributes(queue, resources)
+    else:
+        slurm_atrs = None
 
     args = launcher.ipcluster_cmd_argv + \
         ["start",
@@ -542,6 +556,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--debug",
          "--n=%s" % num_jobs,
          "--%s.cores=%s" % (engine_class, cores_per_job),
+         "--%s.resources='%s'" % (controller_class, resources),
          "--%s.resources='%s'" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
          "--%s.mem='%s'" % (controller_class, extra_params.get("mem", "")),
@@ -553,9 +568,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     args += _get_profile_args(profile)
     if pename:
         args += ["--%s.pename=%s" % (engine_class, pename)]
-    elif scheduler in ["OLDSLURM", "SLURM"]:
-        # SLURM cannot get resource atts (native specification) as SGE does
-        slurm_atrs = get_slurm_attributes(queue, resources)
+    if slurm_atrs:
         args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "1"))]
         args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
         args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
