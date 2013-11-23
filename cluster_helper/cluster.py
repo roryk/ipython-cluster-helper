@@ -138,7 +138,7 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#$ -l mem_free=%sG" % self.mem
+            self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         self.context["pename"] = str(self.pename)
@@ -371,7 +371,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
         if self.mem:
-            self.context["mem"] = "#PBS -l mem=%sgb" % self.mem
+            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         return super(BcbioPBSEngineSetLauncher, self).start(n)
@@ -429,7 +429,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
         """Start n engines by profile or profile_dir."""
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#PBS -l mem=%sgb" % self.mem
+            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
