@@ -93,7 +93,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
         self.context["cores"] = self.cores
         if self.mem:
             # scale memory to kb
-            mem = int(float(self.mem) * 1024.0 * 1024.0 * self.cores)
+            mem = int(float(self.mem) * 1024.0 * 1024.0)
             self.context["mem"] = "#BSUB -M %s" % mem
         else:
             self.context["mem"] = ""
@@ -138,7 +138,7 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024 * self.cores)
+            self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         self.context["pename"] = str(self.pename)
@@ -260,10 +260,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            # scale memory to Mb and cores
-            slurm_overhead = 100
-            mem = int(math.ceil(((float(self.mem) * 1024.0) + slurm_overhead) * self.cores))
-            self.context["mem"] = "#SBATCH --mem=%s" % mem
+            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0)
         else:
             self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores)
         self.context["machines"] = self.machines
@@ -372,7 +369,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
         self.context["cores"] = self.cores
         self.context["pename"] = str(self.pename)
         if self.mem:
-            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024 * self.cores)
+            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         return super(BcbioPBSEngineSetLauncher, self).start(n)
@@ -430,7 +427,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
         """Start n engines by profile or profile_dir."""
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024 * self.cores)
+            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
