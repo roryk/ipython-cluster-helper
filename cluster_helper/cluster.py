@@ -70,6 +70,25 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
                      "--HeartMonitor.period=16000"]
 
+# Increase resource limits on engines to handle additional processes
+# At scale we can run out of open file handles or run out of user
+# processes. This tries to adjust this limits for each IPython worker
+# within available hard limits.
+target_procs = 50000
+resource_cmds = ["import resource",
+                 "cur_proc, max_proc = resource.getrlimit(resource.RLIMIT_NPROC)",
+                 "target_proc = min(max_proc, %s)" % target_procs,
+                 "resource.setrlimit(resource.RLIMIT_NPROC, (max(cur_proc, target_proc), max_proc))",
+                 "cur_hdls, max_hdls = resource.getrlimit(resource.RLIMIT_NOFILE)",
+                 "target_hdls = min(max_hdls, %s)" % target_procs,
+                 "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))",
+                 "print(resource.getrlimit(resource.RLIMIT_NPROC), resource.getrlimit(resource.RLIMIT_NOFILE))"]
+engine_cmd_argv = launcher.ipengine_cmd_argv[:2] + \
+                  ["; ".join(resource_cmds + launcher.ipengine_cmd_argv[2].split("; "))]
+cluster_cmd_argv = launcher.ipcluster_cmd_argv[:2] + \
+                  ["; ".join(resource_cmds + launcher.ipcluster_cmd_argv[2].split("; "))]
+
+
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
@@ -86,7 +105,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
 #BSUB -R "span[hosts=1]"
 {mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
@@ -132,7 +151,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 {resources}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+"""% (' '.join(map(pipes.quote, engine_cmd_argv)),
       ' '.join(timeout_params)))
 
     def start(self, n):
@@ -254,7 +273,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 {mem}
 {resources}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
@@ -312,7 +331,7 @@ class BcbioOLDSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixi
 #SBATCH -N {machines}
 #SBATCH -t {timelimit}
 srun -N {machines} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
@@ -362,7 +381,7 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
 #PBS -t 1-{n}
 {mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""% (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+"""% (' '.join(map(pipes.quote, engine_cmd_argv)),
       ' '.join(timeout_params)))
 
     def start(self, n):
@@ -420,7 +439,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 {mem}
 #PBS -l walltime=239:00:00
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
@@ -467,7 +486,7 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
 #PBS -V
 #PBS -N ipengine
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, launcher.ipengine_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
 
     def start(self, n):
@@ -545,7 +564,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     else:
         slurm_atrs = None
 
-    args = launcher.ipcluster_cmd_argv + \
+    args = cluster_cmd_argv + \
         ["start",
          "--daemonize=True",
          "--IPClusterEngines.early_shutdown=240",
@@ -577,7 +596,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
 
 
 def _stop(profile, cluster_id):
-    args = launcher.ipcluster_cmd_argv + \
+    args = cluster_cmd_argv + \
            ["stop", "--cluster-id=%s" % cluster_id]
     args += _get_profile_args(profile)
     subprocess.check_call(args)
