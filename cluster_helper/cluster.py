@@ -81,8 +81,7 @@ resource_cmds = ["import resource",
                  "resource.setrlimit(resource.RLIMIT_NPROC, (max(cur_proc, target_proc), max_proc))",
                  "cur_hdls, max_hdls = resource.getrlimit(resource.RLIMIT_NOFILE)",
                  "target_hdls = min(max_hdls, %s)" % target_procs,
-                 "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))",
-                 "print(resource.getrlimit(resource.RLIMIT_NPROC), resource.getrlimit(resource.RLIMIT_NOFILE))"]
+                 "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))"]
 engine_cmd_argv = launcher.ipengine_cmd_argv[:2] + \
                   ["; ".join(resource_cmds + launcher.ipengine_cmd_argv[2].split("; "))]
 cluster_cmd_argv = launcher.ipcluster_cmd_argv[:2] + \
