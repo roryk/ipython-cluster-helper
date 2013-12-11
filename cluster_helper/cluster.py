@@ -180,11 +180,14 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 def _find_parallel_environment(queue):
     """Find an SGE/OGE parallel environment for running multicore jobs in specified queue.
     """
+    base_queue = os.path.splitext(queue)[0]
+    queue = base_queue + ".q"
+
     for name in subprocess.check_output(["qconf", "-spl"]).strip().split():
         if name:
             for line in subprocess.check_output(["qconf", "-sp", name]).split("\n"):
                 if _has_parallel_environment(line):
-                    if _queue_can_access_pe(name, queue):
+                    if (_queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue)):
                         return name
     raise ValueError("Could not find an SGE environment configured for parallel execution. " \
                      "See %s for SGE setup instructions." %
@@ -214,8 +217,6 @@ def _parseSGEConf(data):
 def _queue_can_access_pe(pe_name, queue):
     """Check if a queue has access to a specific parallel environment, using qconf.
     """
-    if not queue.endswith(".q"):
-        queue = "%s.q" % queue
     queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
     for test_pe_name in queue_config["pe_list"].split():
         test_pe_name = test_pe_name.split(",")[0].strip()
