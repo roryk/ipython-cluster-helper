@@ -67,6 +67,7 @@ Contributors
 * Rory Kirchner (@roryk)
 * Luca Beltrame (@lbeltrame)
 * James Porter (@porterjamesj)
+* Billy Ziege (@billyziege)
 
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
