@@ -217,7 +217,10 @@ def _parseSGEConf(data):
 def _queue_can_access_pe(pe_name, queue):
     """Check if a queue has access to a specific parallel environment, using qconf.
     """
-    queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
+    try:
+        queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
+    except:
+        return False
     for test_pe_name in queue_config["pe_list"].split():
         test_pe_name = test_pe_name.split(",")[0].strip()
         if test_pe_name == pe_name:
