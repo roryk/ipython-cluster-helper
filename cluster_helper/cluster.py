@@ -441,6 +441,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 #PBS -l nodes=1:ppn={cores}
 {mem}
 #PBS -l walltime=239:00:00
+cd $PBS_O_WORKDIR
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -465,6 +466,7 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
 #PBS -N ipcontroller
 #PBS -j oe
 #PBS -l walltime=239:00:00
+cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
@@ -488,6 +490,7 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N ipengine
+cd $PBS_O_WORKDIR
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -505,6 +508,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
+cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
      ' '.join(controller_params)))
