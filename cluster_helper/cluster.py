@@ -8,7 +8,6 @@ https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/distributed/ipython.
 """
 import contextlib
 import copy
-import math
 import os
 import pipes
 import uuid
@@ -53,7 +52,7 @@ if False:
     from IPython.kernel.zmq import serialize
     serialize.pickle = pickle
 
-DEFAULT_MEM_PER_CPU = 1000 # Mb
+DEFAULT_MEM_PER_CPU = 1000  # Mb
 
 # ## Custom launchers
 
@@ -86,7 +85,6 @@ engine_cmd_argv = launcher.ipengine_cmd_argv[:2] + \
                   ["; ".join(resource_cmds + launcher.ipengine_cmd_argv[2].split("; "))]
 cluster_cmd_argv = launcher.ipcluster_cmd_argv[:2] + \
                   ["; ".join(resource_cmds + launcher.ipcluster_cmd_argv[2].split("; "))]
-
 
 
 # ## Platform LSF
@@ -123,8 +121,8 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
 #BSUB -J bcbio-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-    """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-         ' '.join(controller_params)))
+    """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+           ' '.join(controller_params)))
     def start(self):
         return super(BcbioLSFControllerLauncher, self).start()
 
@@ -150,8 +148,8 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 {resources}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""% (' '.join(map(pipes.quote, engine_cmd_argv)),
-      ' '.join(timeout_params)))
+""" % (' '.join(map(pipes.quote, engine_cmd_argv)),
+       ' '.join(timeout_params)))
 
     def start(self, n):
         self.context["cores"] = self.cores
@@ -172,8 +170,8 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 #$ -cwd
 #$ -N ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-     ' '.join(controller_params)))
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+       ' '.join(controller_params)))
     def start(self):
         return super(BcbioSGEControllerLauncher, self).start()
 
@@ -183,15 +181,41 @@ def _find_parallel_environment(queue):
     base_queue = os.path.splitext(queue)[0]
     queue = base_queue + ".q"
 
+    available_pes = []
     for name in subprocess.check_output(["qconf", "-spl"]).strip().split():
         if name:
             for line in subprocess.check_output(["qconf", "-sp", name]).split("\n"):
                 if _has_parallel_environment(line):
                     if (_queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue)):
-                        return name
-    raise ValueError("Could not find an SGE environment configured for parallel execution. " \
-                     "See %s for SGE setup instructions." %
-                     "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
+                        available_pes.append(name)
+    if len(available_pes) == 0:
+        raise ValueError("Could not find an SGE environment configured for parallel execution. "
+                         "See %s for SGE setup instructions." %
+                         "https://blogs.oracle.com/templedf/entry/configuring_a_new_parallel_environment")
+    else:
+        return _prioritize_pes(available_pes)
+
+def _prioritize_pes(choices):
+    """Prioritize and deprioritize paired environments based on names.
+
+    We're looking for multiprocessing friendly environments, so prioritize ones with SMP
+    in the name and deprioritize those with MPI.
+    """
+    # lower scores = better
+    ranks = {"smp": -1, "mpi": 1}
+    sort_choices = []
+    for n in choices:
+        # Identify if it fits in any special cases
+        special_case = False
+        for k, val in ranks.items():
+            if n.lower().find(k) >= 0:
+                sort_choices.append((val, n))
+                special_case = True
+                break
+        if not special_case:  # otherwise, no priority/de-priority
+            sort_choices.append((0, n))
+    sort_choices.sort()
+    return sort_choices[0][1]
 
 def _parseSGEConf(data):
     """Handle SGE multiple line output nastiness.
@@ -238,16 +262,16 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
     """A BatchSystemLauncher subclass for SLURM
     """
     submit_command = List(['sbatch'], config=True,
-        help="The SLURM submit command ['sbatch']")
+                          help="The SLURM submit command ['sbatch']")
     # Send SIGKILL instead of term, otherwise the job is "CANCELLED", not
     # "FINISHED"
     delete_command = List(['scancel', '--signal=KILL'], config=True,
-        help="The SLURM delete command ['scancel']")
+                          help="The SLURM delete command ['scancel']")
     job_id_regexp = CRegExp(r'\d+', config=True,
-        help="A regular expression used to get the job id from the output of 'sbatch'")
+                            help="A regular expression used to get the job id from the output of 'sbatch'")
 
     batch_file = Unicode(u'', config=True,
-        help="The string that is the batch script template itself.")
+                         help="The string that is the batch script template itself.")
 
     queue_regexp = CRegExp('#SBATCH\W+-p\W+\w')
     queue_template = Unicode('#SBATCH -p {queue}')
@@ -308,8 +332,8 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 {mem}
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-    """%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-         ' '.join(controller_params)))
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+       ' '.join(controller_params)))
     def start(self):
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
@@ -358,7 +382,7 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
 #SBATCH -t {timelimit}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-     ' '.join(controller_params)))
+       ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
@@ -384,8 +408,8 @@ class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
 #PBS -t 1-{n}
 {mem}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-"""% (' '.join(map(pipes.quote, engine_cmd_argv)),
-      ' '.join(timeout_params)))
+""" % (' '.join(map(pipes.quote, engine_cmd_argv)),
+       ' '.join(timeout_params)))
 
     def start(self, n):
         self.context["cores"] = self.cores
@@ -403,8 +427,8 @@ class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
 #PBS -S /bin/sh
 #PBS -N ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-"""%(' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-     ' '.join(controller_params)))
+""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+       ' '.join(controller_params)))
 
     def start(self):
         return super(BcbioPBSControllerLauncher, self).start()
@@ -414,11 +438,11 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
     """A BatchSystemLauncher subclass for PBS."""
 
     submit_command = List(['qsub'], config=True,
-        help="The PBS submit command ['qsub']")
+                          help="The PBS submit command ['qsub']")
     delete_command = List(['qdel'], config=True,
-        help="The PBS delete command ['qsub']")
+                          help="The PBS delete command ['qsub']")
     job_id_regexp = CRegExp(r'\d+(\[\])?', config=True,
-        help="Regular expresion for identifying the job ID [r'\d+']")
+                            help="Regular expresion for identifying the job ID [r'\d+']")
 
     batch_file = Unicode(u'')
     #job_array_regexp = CRegExp('#PBS\W+-t\W+[\w\d\-\$]+')
@@ -469,7 +493,7 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-     ' '.join(controller_params)))
+       ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
@@ -486,7 +510,7 @@ class PBSPROLauncher(launcher.PBSLauncher):
 class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBSPro"""
     batch_file_name = Unicode(u'pbspro_engines', config=True,
-        help="batch file name for the engine(s) job.")
+                              help="batch file name for the engine(s) job.")
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N ipengine
@@ -504,14 +528,14 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     """Launch a controller using PBSPro."""
 
     batch_file_name = Unicode(u'pbspro_controller', config=True,
-        help="batch file name for the controller job.")
+                              help="batch file name for the controller job.")
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N ipcontroller
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
-     ' '.join(controller_params)))
+       ' '.join(controller_params)))
 
     def start(self):
         """Start the controller by profile or profile_dir."""
@@ -713,7 +737,7 @@ def get_url_file(profile, cluster_id):
 
     if os.path.isdir(profile) and os.path.isabs(profile):
         # Return full_path if one is given
-        return  os.path.join(profile, "security", url_file)
+        return os.path.join(profile, "security", url_file)
 
     return os.path.join(locate_profile(profile), "security", url_file)
 
