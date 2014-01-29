@@ -81,10 +81,12 @@ resource_cmds = ["import resource",
                  "cur_hdls, max_hdls = resource.getrlimit(resource.RLIMIT_NOFILE)",
                  "target_hdls = min(max_hdls, %s)" % target_procs,
                  "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))"]
-engine_cmd_argv = launcher.ipengine_cmd_argv[:2] + \
+engine_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + launcher.ipengine_cmd_argv[2].split("; "))]
-cluster_cmd_argv = launcher.ipcluster_cmd_argv[:2] + \
+cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + launcher.ipcluster_cmd_argv[2].split("; "))]
+controller_cmd_argv = [sys.executable, "-E", "-c"] + \
+                      [launcher.ipcontroller_cmd_argv[2]]
 
 
 # ## Platform LSF
@@ -124,7 +126,7 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
 #BSUB -J bcbio{tag}-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-    """ % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+    """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
            ' '.join(controller_params)))
     def start(self):
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
@@ -177,7 +179,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 #$ -cwd
 #$ -N bcbio{tag}-ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
     def start(self):
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
@@ -343,7 +345,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 {mem}
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
     def start(self):
         self.context["account"] = self.account
@@ -393,7 +395,7 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
 #SBATCH --job-name ipcontroller
 #SBATCH -t {timelimit}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
 
     def start(self):
@@ -442,7 +444,7 @@ class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
 #PBS -S /bin/sh
 #PBS -N bcbio{tag}-ipcontroller
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
 
     def start(self):
@@ -510,7 +512,7 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
 #PBS -l walltime=239:00:00
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
 
     def start(self):
@@ -556,7 +558,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
 #PBS -N bcbio{tag}-ipcontroller
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, launcher.ipcontroller_cmd_argv)),
+""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
 
     def start(self):
@@ -650,13 +652,25 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     subprocess.check_call(args)
     return cluster_id
 
+def _start_local(cores, profile, cluster_id):
+    """Start a local non-distributed IPython engine. Useful for testing
+    """
+    args = cluster_cmd_argv + \
+        ["start",
+         "--daemonize=True",
+         "--log-to-file",
+         "--debug",
+         "--cluster-id=%s" % cluster_id,
+         "--n=%s" % cores]
+    args += _get_profile_args(profile)
+    subprocess.check_call(args)
+    return cluster_id
 
 def _stop(profile, cluster_id):
     args = cluster_cmd_argv + \
            ["stop", "--cluster-id=%s" % cluster_id]
     args += _get_profile_args(profile)
     subprocess.check_call(args)
-
 
 def _is_up(url_file, n):
     try:
@@ -669,7 +683,6 @@ def _is_up(url_file, n):
         return False
     else:
         return up >= n
-
 
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
@@ -696,8 +709,8 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     else:
         # ensure we have an .ipython directory to prevent issues
         # creating it during parallel startup
-        cmd = [sys.executable, "-c", "from IPython import start_ipython; start_ipython()",
-               "profile", "create"]
+        cmd = [sys.executable, "-E", "-c", "from IPython import start_ipython; start_ipython()",
+               "profile", "create", "--parallel"] + _get_profile_args(profile)
         subprocess.check_call(cmd)
         has_throwaway = False
     num_tries = 0
@@ -707,7 +720,10 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
 
     while 1:
         try:
-            _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id, extra_params)
+            if extra_params.get("run_local"):
+                _start_local(cores_per_job, profile, cluster_id)
+            else:
+                _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id, extra_params)
             break
         except subprocess.CalledProcessError:
             if num_tries > max_tries:
@@ -751,7 +767,7 @@ def _slurm_version():
 
 def create_throwaway_profile():
     profile = str(uuid.uuid1())
-    cmd = [sys.executable, "-c", "from IPython import start_ipython; start_ipython()",
+    cmd = [sys.executable, "-E", "-c", "from IPython import start_ipython; start_ipython()",
            "profile", "create", profile, "--parallel"]
     subprocess.check_call(cmd)
     return profile
