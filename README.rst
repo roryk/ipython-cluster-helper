@@ -32,6 +32,13 @@ parallelize your program across 5 nodes with ipython-cluster-helper::
 
 That's it! No setup required.
 
+To run a local cluster for testing purposes pass `run_local` as an extra
+parameter to the cluster_view function::
+
+    with cluster_view(scheduler=None, queue=None, num_jobs=5,
+                      extra_params={"run_local": True}) as view:
+        view.map(long_running_function, sys.argv[1:])
+
 How it works
 ------------
 
