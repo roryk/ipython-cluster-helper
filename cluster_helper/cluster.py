@@ -468,12 +468,29 @@ class TORQUELauncher(launcher.BatchSystemLauncher):
     queue_regexp = CRegExp('#PBS\W+-q\W+\$?\w+')
     queue_template = Unicode('#PBS -q {queue}')
 
+def _prep_torque_resources(resources):
+    """Prepare resources passed to torque from input parameters.
+    """
+    out = []
+    has_walltime = False
+    for r in resources.split(";"):
+        k, v = r.split("=")
+        if k.lower() in ["a", "account", "acct"]:
+            out.append("#PBS -A %s" % v)
+        else:
+            if k.lower() == "walltime":
+                has_walltime = True
+            out.append("#PBS -l %s" % r)
+    if not has_walltime:
+        out.append("#PBS -l walltime=239:00:00")
+    return out
 
 class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using Torque"""
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
     default_template = Unicode(u"""#!/bin/sh
@@ -483,7 +500,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 #PBS -t 1-{n}
 #PBS -l nodes=1:ppn={cores}
 {mem}
-#PBS -l walltime=239:00:00
+{resources}
 cd $PBS_O_WORKDIR
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
@@ -497,6 +514,7 @@ cd $PBS_O_WORKDIR
         else:
             self.context["mem"] = ""
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
+        self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
         return super(BcbioTORQUEEngineSetLauncher, self).start(n)
 
 
@@ -505,11 +523,12 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
     batch_file_name = Unicode(unicode("torque_controller" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
     tag = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N bcbio{tag}-ipcontroller
 #PBS -j oe
-#PBS -l walltime=239:00:00
+{resources}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -518,6 +537,7 @@ cd $PBS_O_WORKDIR
     def start(self):
         """Start the controller by profile or profile_dir."""
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
+        self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
         return super(BcbioTORQUEControllerLauncher, self).start(1)
 
 
