@@ -479,13 +479,18 @@ def _prep_torque_resources(resources):
     out = []
     has_walltime = False
     for r in resources.split(";"):
-        k, v = r.split("=")
+        if "=" in r:
+            k, v = r.split("=")
+            k.strip()
+            v.strip()
+        else:
+            k = ""
         if k.lower() in ["a", "account", "acct"]:
             out.append("#PBS -A %s" % v)
         else:
             if k.lower() == "walltime":
                 has_walltime = True
-            out.append("#PBS -l %s" % r)
+            out.append("#PBS -l %s" % r.strip())
     if not has_walltime:
         out.append("#PBS -l walltime=239:00:00")
     return out
