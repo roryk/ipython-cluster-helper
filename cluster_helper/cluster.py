@@ -174,15 +174,20 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -S /bin/sh
 #$ -cwd
 #$ -N bcbio{tag}-ipcontroller
+{resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
     def start(self):
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
+        self.context["resources"] = "\n".join(["#$ -l %s" % r.strip()
+                                               for r in str(self.resources).split(";")
+                                               if r.strip()])
         return super(BcbioSGEControllerLauncher, self).start()
 
 def _find_parallel_environment(queue):
