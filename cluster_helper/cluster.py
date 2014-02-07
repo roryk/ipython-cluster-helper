@@ -104,6 +104,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
 #BSUB -n {cores}
 #BSUB -R "span[hosts=1]"
 {mem}
+{resources}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -117,19 +118,30 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
         else:
             self.context["mem"] = ""
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
+        self.context["resources"] = _format_lsf_resources(self.resources)
         return super(BcbioLSFEngineSetLauncher, self).start(n)
+
+def _format_lsf_resources(resources):
+    resource_str = ""
+    for r in str(resources).split(";"):
+        if r.strip():
+            resource_str += "#BSUB -%s\n" % r.strip().split("=")
+    return resource_str
 
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -J bcbio{tag}-ipcontroller
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
+{resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
     """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
            ' '.join(controller_params)))
     def start(self):
         self.context["tag"] = "-%s" % self.tag if self.tag else ""
+        self.context["resources"] = _format_lsf_resources(self.resources)
         return super(BcbioLSFControllerLauncher, self).start()
 
 # ## Sun Grid Engine (SGE)
