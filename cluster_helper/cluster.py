@@ -97,6 +97,9 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
+    job_array_template = Unicode('')
+    queue_template = Unicode('')
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -q {queue}
 #BSUB -J {tag}-e[1-{n}]
@@ -139,6 +142,8 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
+    job_array_template = Unicode('')
+    queue_template = Unicode('')
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -q {queue}
 #BSUB -J {tag}-c
@@ -748,10 +753,8 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     """
     if extra_params is None:
         extra_params = {}
-    delay = 10
     max_delay = start_wait * 60
-    # Increase default delay without changing max_delay for back compatibility
-    delay = delay * 3
+    delay = 5 if extra_params.get("run_local") else 30
     max_tries = 10
     if profile is None:
         has_throwaway = True
