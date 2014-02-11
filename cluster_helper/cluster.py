@@ -81,12 +81,14 @@ resource_cmds = ["import resource",
                  "cur_hdls, max_hdls = resource.getrlimit(resource.RLIMIT_NOFILE)",
                  "target_hdls = min(max_hdls, %s)" % target_procs,
                  "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))"]
+
+start_cmd = "from IPython.parallel.apps.%s import launch_new_instance"
 engine_cmd_argv = [sys.executable, "-E", "-c"] + \
-                  ["; ".join(resource_cmds + launcher.ipengine_cmd_argv[2].split("; "))]
+                  ["; ".join(resource_cmds + [start_cmd % "ipengineapp", "launch_new_instance()"])]
 cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
-                  ["; ".join(resource_cmds + launcher.ipcluster_cmd_argv[2].split("; "))]
+                   ["; ".join(resource_cmds + [start_cmd % "ipclusterapp", "launch_new_instance()"])]
 controller_cmd_argv = [sys.executable, "-E", "-c"] + \
-                      [launcher.ipcontroller_cmd_argv[2]]
+                      ["; ".join(resource_cmds + [start_cmd % "ipcontrollerapp", "launch_new_instance()"])]
 
 
 # ## Platform LSF
@@ -543,15 +545,17 @@ cd $PBS_O_WORKDIR
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
-        self.context["cores"] = self.cores
-        if self.mem:
-            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
-        else:
-            self.context["mem"] = ""
-        self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
-        return super(BcbioTORQUEEngineSetLauncher, self).start(n)
-
+        try:
+            self.context["cores"] = self.cores
+            if self.mem:
+                self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
+            else:
+                self.context["mem"] = ""
+            self.context["tag"] = self.tag if self.tag else "bcbio"
+            self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
+            return super(BcbioTORQUEEngineSetLauncher, self).start(n)
+        except:
+            self.log.exception("Engine start failed")
 
 class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using Torque."""
@@ -571,10 +575,12 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
-        self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
-        return super(BcbioTORQUEControllerLauncher, self).start(1)
-
+        try:
+            self.context["tag"] = self.tag if self.tag else "bcbio"
+            self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
+            return super(BcbioTORQUEControllerLauncher, self).start(1)
+        except:
+            self.log.exception("Controller start failed")
 
 # ## PBSPro
 class PBSPROLauncher(launcher.PBSLauncher):
