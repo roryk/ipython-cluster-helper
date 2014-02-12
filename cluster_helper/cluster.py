@@ -512,7 +512,7 @@ def _prep_torque_resources(resources):
             v.strip()
         else:
             k = ""
-        if k.lower() in ["a", "account", "acct"]:
+        if k.lower() in ["a", "account", "acct"] and v:
             out.append("#PBS -A %s" % v)
         else:
             if k.lower() == "walltime":
