@@ -9,7 +9,6 @@ setup(name = "ipython-cluster-helper",
       license = "MIT",
       zip_safe=False,
       url = "https://github.com/roryk/ipython-cluster-helper",
-      namespace_packages = ["cluster_helper"],
       packages = find_packages(),
       install_requires = [
           "pyzmq >= 2.1.11",
