@@ -61,7 +61,7 @@ def get_slurm_attributes(queue, resources):
     slurm_atrs = {}
     # specially handled resource specifications
     special_resources = set(["machines", "account", "timelimit"])
-    default_tl = "7-00:00:00" # 1 week default
+    default_tl = "2-00:00:00" # 2 day default
     if resources:
         for parm in resources.split(";"):
             k, v = [ a.strip() for a in  parm.split('=') ]

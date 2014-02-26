@@ -323,7 +323,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Custom launcher handling heterogeneous clusters on SLURM
     """
     batch_file_name = Unicode(unicode("SLURM_engine" + str(uuid.uuid4())))
-    machines = traitlets.Integer(1, config=True)
+    machines = traitlets.Integer(0, config=True)
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
@@ -339,7 +339,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH --array=1-{n}
 #SBATCH -A {account}
 #SBATCH -t {timelimit}
-#SBATCH -N {machines}
+{machines}
 {mem}
 {resources}
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
@@ -353,7 +353,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         else:
             self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores)
         self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["machines"] = self.machines
+        self.context["machines"] = ("#SBATCH %s" % (self.machines) if int(self.machines) > 0 else "")
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
@@ -705,7 +705,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
     if pename:
         args += ["--%s.pename=%s" % (engine_class, pename)]
     if slurm_atrs:
-        args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "1"))]
+        args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "0"))]
         args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
         args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
         args += ["--%s.timelimit='%s'" % (engine_class, slurm_atrs["timelimit"])]
