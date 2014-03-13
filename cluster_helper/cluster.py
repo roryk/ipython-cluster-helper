@@ -76,10 +76,10 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
 target_procs = 50000
 resource_cmds = ["import resource",
                  "cur_proc, max_proc = resource.getrlimit(resource.RLIMIT_NPROC)",
-                 "target_proc = min(max_proc, %s)" % target_procs,
+                 "target_proc = min(max_proc, %s) if max_proc > 0 else %s" % (target_procs, target_procs),
                  "resource.setrlimit(resource.RLIMIT_NPROC, (max(cur_proc, target_proc), max_proc))",
                  "cur_hdls, max_hdls = resource.getrlimit(resource.RLIMIT_NOFILE)",
-                 "target_hdls = min(max_hdls, %s)" % target_procs,
+                 "target_hdls = min(max_hdls, %s) if max_hdls > 0 else %s" % (target_procs, target_procs),
                  "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))"]
 
 start_cmd = "from IPython.parallel.apps.%s import launch_new_instance"
