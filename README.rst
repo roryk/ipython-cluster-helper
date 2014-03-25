@@ -75,6 +75,6 @@ Contributors
 * Luca Beltrame (@lbeltrame)
 * James Porter (@porterjamesj)
 * Billy Ziege (@billyziege)
+* ink1 (@ink1)
 
-
-.. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
+.. _bcbio-nextgen: https://github.com/chapmanb/

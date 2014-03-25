@@ -26,6 +26,8 @@ from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
 from slurm import get_slurm_attributes
+import utils
+import lsf
 
 # if dill is available, override pickle with dill pickle
 # this lets us pickle way more things
@@ -117,8 +119,8 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            # scale memory to kb
-            mem = int(float(self.mem) * 1024.0 * 1024.0)
+            lsf_unit = lsf.get_lsf_units()
+            mem = utils.convert_mb(self.mem, lsf_unit)
             self.context["mem"] = "#BSUB -M %s" % mem
         else:
             self.context["mem"] = ""
