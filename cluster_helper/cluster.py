@@ -120,7 +120,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
         self.context["cores"] = self.cores
         if self.mem:
             lsf_unit = lsf.get_lsf_units()
-            mem = utils.convert_mb(self.mem * 1024, lsf_unit)
+            mem = utils.convert_mb(float(self.mem) * 1024, lsf_unit)
             self.context["mem"] = "#BSUB -M %s" % mem
         else:
             self.context["mem"] = ""
@@ -759,6 +759,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         Defaults to 16 minutes. Set to longer for slow starting clusters.
       - retries: Number of retries to allow for failed tasks.
     """
+
     if extra_params is None:
         extra_params = {}
     max_delay = start_wait * 60

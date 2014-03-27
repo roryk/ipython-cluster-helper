@@ -36,9 +36,12 @@ if __name__ == "__main__":
                         help="Native specification flags to the scheduler")
     parser.add_argument("--timeout", dest="timeout", default=15,
                         help="Time (in minutes) to wait before timing out.")
+    parser.add_argument("--memory", dest="mem", default=1,
+                        help="Memory in GB to reserve.")
 
     args = parser.parse_args()
-    args.resources = {'resources': args.resources}
+    args.resources = {'resources': args.resources,
+                      'mem': args.mem}
 
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
                       start_wait=args.timeout,

@@ -77,4 +77,4 @@ Contributors
 * Billy Ziege (@billyziege)
 * ink1 (@ink1)
 
-.. _bcbio-nextgen: https://github.com/chapmanb/
+.. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
