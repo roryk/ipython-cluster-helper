@@ -749,7 +749,7 @@ def _is_up(url_file, n):
 
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
-                 start_wait=16, extra_params=None, retries=None):
+                 start_wait=16, extra_params=None, retries=None, direct=False):
     """Provide a view on an ipython cluster for processing.
 
       - scheduler: The type of cluster to start (lsf, sge, pbs, torque).
@@ -801,7 +801,10 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             if slept > max_delay:
                 raise IOError("Cluster startup timed out.")
         client = Client(url_file, timeout=60)
-        yield _get_balanced_blocked_view(client, retries)
+        if direct:
+            yield _get_direct_view(client, retries)
+        else:
+            yield _get_balanced_blocked_view(client, retries)
     finally:
         if client:
             client.close()
@@ -812,6 +815,14 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
 
 def _get_balanced_blocked_view(client, retries):
     view = client.load_balanced_view()
+    view.set_flags(block=True)
+    if retries:
+        view.set_flags(retries=int(retries))
+    return view
+
+
+def _get_direct_view(client, retries):
+    view = client[:]
     view.set_flags(block=True)
     if retries:
         view.set_flags(retries=int(retries))

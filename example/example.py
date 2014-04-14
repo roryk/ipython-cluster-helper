@@ -67,7 +67,7 @@ if __name__ == "__main__":
         except ImportError:
             found=False
 
-        if found:
+        if False:
             def make_closure(a):
                 """make a function with a closure, and return it"""
                 def has_closure(b):
