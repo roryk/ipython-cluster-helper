@@ -119,9 +119,9 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            lsf_unit = lsf.get_lsf_units()
+            lsf_unit = lsf.get_lsf_units(resource=True)
             mem = utils.convert_mb(float(self.mem) * 1024, lsf_unit)
-            self.context["mem"] = "#BSUB -M %s" % mem
+            self.context["mem"] = '#BSUB -R "rusage[mem=%s]"' % mem
         else:
             self.context["mem"] = ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
