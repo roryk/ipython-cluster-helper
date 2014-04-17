@@ -1,5 +1,5 @@
-## 0.2.1 (in development)
+## 0.2.18 (April 17, 2014)
 
-## 0.2.0 
-- Added support for dill, expanding the range of picklable functions:
-  https://github.com/uqfoundation/dill
+- Added ability to get direct view to a cluster.
+- Use rusage for LSF jobs instead of --mem. This walls of the memory, preventing nodes
+  from being oversubscribed.
