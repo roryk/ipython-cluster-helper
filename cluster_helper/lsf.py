@@ -66,6 +66,17 @@ def tokenize_conf_stream(conf_handle):
             continue
         yield (tokens[0].strip(), tokens[1].strip())
 
+def apply_bparams(fn):
+    """
+    apply fn to each line of bparams, returning the result
+    """
+    cmd = ["bparams", "-a"]
+    try:
+        output = subprocess.check_output(cmd)
+    except:
+        return None
+    return fn(output.split("\n"))
+
 def apply_lsadmin(fn):
     """
     apply fn to each line of lsadmin, returning the result
@@ -81,8 +92,12 @@ def apply_lsadmin(fn):
 def get_lsf_units(resource=False):
     """
     check if we can find LSF_UNITS_FOR_LIMITS in lsadmin and lsf.conf
-    files, preferring the value from lsadmin
+    files, preferring the value in bparams, then lsadmin, then the lsf.conf file
     """
+    lsf_units = apply_bparams(get_lsf_units_from_stream)
+    if lsf_units:
+        return lsf_units
+
     lsf_units = apply_lsadmin(get_lsf_units_from_stream)
     if lsf_units:
         return lsf_units
@@ -102,6 +117,13 @@ def per_core_reservation():
     returns True if the cluster is configured for reservations to be per core,
     False if it is per job
     """
+    per_core = apply_bparams(per_core_reserve_from_stream)
+    if per_core:
+        if per_core.upper() == "Y":
+            return True
+        else:
+            return False
+
     per_core = apply_lsadmin(per_core_reserve_from_stream)
     if per_core:
         if per_core.upper() == "Y":
