@@ -119,8 +119,12 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
+            # lsf.conf can specify nonstandard units for memory reservation
             lsf_unit = lsf.get_lsf_units(resource=True)
             mem = utils.convert_mb(float(self.mem) * 1024, lsf_unit)
+            # check if memory reservation is per core or per job
+            if lsf.per_core_reservation():
+                mem = mem / self.cores
             self.context["mem"] = '#BSUB -R "rusage[mem=%s]"' % mem
         else:
             self.context["mem"] = ""
