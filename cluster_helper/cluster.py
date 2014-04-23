@@ -75,7 +75,8 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
 # At scale we can run out of open file handles or run out of user
 # processes. This tries to adjust this limits for each IPython worker
 # within available hard limits.
-target_procs = 50000
+# Match target_procs to OSX limits for a default.
+target_procs = 10240
 resource_cmds = ["import resource",
                  "cur_proc, max_proc = resource.getrlimit(resource.RLIMIT_NPROC)",
                  "target_proc = min(max_proc, %s) if max_proc > 0 else %s" % (target_procs, target_procs),
