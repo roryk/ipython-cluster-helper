@@ -389,7 +389,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     def start(self):
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
-        self.context["mem"] = "#SBATCH --mem=%d" % DEFAULT_MEM_PER_CPU
+        self.context["mem"] = "#SBATCH --mem=%d" % (8 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
