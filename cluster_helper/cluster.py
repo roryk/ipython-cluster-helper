@@ -71,6 +71,33 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
                      "--HeartMonitor.period=16000"]
 
+def _network_controller_params():
+    """Avoid picking up docker and VM network interfaces in IPython 2.0.
+
+    Adjusts _load_ips_netifaces from IPython.utils.localinterfaces. Changes
+    submitted upstream so we can remove this when incorporated into released IPython.
+    """
+    import netifaces
+    from IPython.utils.data import uniq_stable
+    public_ips = []
+    vm_ifaces = set(["docker0", "virbr0"])  # VM/container interfaces we do not want
+
+    # list of iface names, 'lo0', 'eth0', etc.
+    for iface in netifaces.interfaces():
+        if iface not in vm_ifaces:
+            # list of ipv4 addrinfo dicts
+            ipv4s = netifaces.ifaddresses(iface).get(netifaces.AF_INET, [])
+            for entry in ipv4s:
+                addr = entry.get('addr')
+                if not addr:
+                    continue
+                if not (iface.startswith('lo') or addr.startswith('127.')):
+                    public_ips.append(addr)
+    public_ips = uniq_stable(public_ips)
+    return ["--IPControllerApp.location=%s" % public_ips[-1]]
+
+controller_params += _network_controller_params()
+
 # Increase resource limits on engines to handle additional processes
 # At scale we can run out of open file handles or run out of user
 # processes. This tries to adjust this limits for each IPython worker
