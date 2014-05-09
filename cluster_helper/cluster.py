@@ -71,32 +71,50 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
                      "--HeartMonitor.max_heartmonitor_misses=12",
                      "--HeartMonitor.period=16000"]
 
-def _network_controller_params():
-    """Avoid picking up docker and VM network interfaces in IPython 2.0.
+# ## Work around issues with docker and VM network interfaces
+# Can go away when we merge changes into upstream IPython
 
-    Adjusts _load_ips_netifaces from IPython.utils.localinterfaces. Changes
-    submitted upstream so we can remove this when incorporated into released IPython.
-    """
-    import netifaces
-    from IPython.utils.data import uniq_stable
-    public_ips = []
-    vm_ifaces = set(["docker0", "virbr0"])  # VM/container interfaces we do not want
+import json
+import stat
+import netifaces
+from IPython.parallel.apps.ipcontrollerapp import IPControllerApp
+from IPython.utils.data import uniq_stable
 
-    # list of iface names, 'lo0', 'eth0', etc.
-    for iface in netifaces.interfaces():
-        if iface not in vm_ifaces:
-            # list of ipv4 addrinfo dicts
-            ipv4s = netifaces.ifaddresses(iface).get(netifaces.AF_INET, [])
-            for entry in ipv4s:
-                addr = entry.get('addr')
-                if not addr:
-                    continue
-                if not (iface.startswith('lo') or addr.startswith('127.')):
-                    public_ips.append(addr)
-    public_ips = uniq_stable(public_ips)
-    return ["--IPControllerApp.location=%s" % public_ips[-1]]
+class VMFixIPControllerApp(IPControllerApp):
+    def _get_public_ip(self):
+        """Avoid picking up docker and VM network interfaces in IPython 2.0.
 
-controller_params += _network_controller_params()
+        Adjusts _load_ips_netifaces from IPython.utils.localinterfaces. Changes
+        submitted upstream so we can remove this when incorporated into released IPython.
+        """
+        public_ips = []
+        vm_ifaces = set(["docker0", "virbr0"])  # VM/container interfaces we do not want
+
+        # list of iface names, 'lo0', 'eth0', etc.
+        for iface in netifaces.interfaces():
+            if iface not in vm_ifaces:
+                # list of ipv4 addrinfo dicts
+                ipv4s = netifaces.ifaddresses(iface).get(netifaces.AF_INET, [])
+                for entry in ipv4s:
+                    addr = entry.get('addr')
+                    if not addr:
+                        continue
+                    if not (iface.startswith('lo') or addr.startswith('127.')):
+                        public_ips.append(addr)
+        public_ips = uniq_stable(public_ips)
+        return public_ips[-1]
+
+    def save_connection_dict(self, fname, cdict):
+        """Override default save_connection_dict to use fixed public IP retrieval.
+        """
+        if not cdict.get("location"):
+            cdict['location'] = self._get_public_ip()
+            cdict["patch"] = "VMFixIPControllerApp"
+        fname = os.path.join(self.profile_dir.security_dir, fname)
+        self.log.info("writing connection info to %s", fname)
+        with open(fname, 'w') as f:
+            f.write(json.dumps(cdict, indent=2))
+        os.chmod(fname, stat.S_IRUSR | stat.S_IWUSR)
 
 # Increase resource limits on engines to handle additional processes
 # At scale we can run out of open file handles or run out of user
@@ -117,8 +135,11 @@ engine_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + [start_cmd % "ipengineapp", "launch_new_instance()"])]
 cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
                    ["; ".join(resource_cmds + [start_cmd % "ipclusterapp", "launch_new_instance()"])]
+#controller_cmd_argv = [sys.executable, "-E", "-c"] + \
+#                      ["; ".join(resource_cmds + [start_cmd % "ipcontrollerapp", "launch_new_instance()"])]
 controller_cmd_argv = [sys.executable, "-E", "-c"] + \
-                      ["; ".join(resource_cmds + [start_cmd % "ipcontrollerapp", "launch_new_instance()"])]
+                      ["; ".join(resource_cmds + ["from cluster_helper.cluster import VMFixIPControllerApp",
+                                                  "VMFixIPControllerApp.launch_instance()"])]
 
 
 # ## Platform LSF
