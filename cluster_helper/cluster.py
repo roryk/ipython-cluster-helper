@@ -848,7 +848,16 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     try:
         client = None
         slept = 0
-        while not _is_up(url_file, num_jobs):
+        max_up = 0
+        up = 0
+        while not up == num_jobs:
+            up = _nengines_up(url_file)
+            if up < max_up:
+                print ("Engine(s) that were up have shutdown prematurely. "
+                       "Aborting cluster startup.")
+                _stop(profile, cluster_id)
+                sys.exit(1)
+            max_up = up
             time.sleep(delay)
             slept += delay
             if slept > max_delay:
@@ -860,10 +869,29 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             yield _get_balanced_blocked_view(client, retries)
     finally:
         if client:
-            client.close()
+            _shutdown(client)
         _stop(profile, cluster_id)
         if has_throwaway:
             delete_profile(profile)
+
+
+def _nengines_up(url_file):
+    "return the number of engines up"
+    try:
+        client = Client(url_file, timeout=60)
+        up = len(client.ids)
+    # the controller isn't up yet
+    except iperror.TimeoutError:
+        return False
+        client.close()
+        return 0
+    # the JSON file is not available to parse
+    except IOError:
+        return False
+        client.close()
+        return 0
+    else:
+        return up
 
 
 def _get_balanced_blocked_view(client, retries):
@@ -873,6 +901,11 @@ def _get_balanced_blocked_view(client, retries):
         view.set_flags(retries=int(retries))
     return view
 
+def _shutdown(client):
+    print "Sending a shutdown signal to the controller and engines."
+#    client.spin()
+#    client.shutdown(hub=True, block=False)
+    client.close()
 
 def _get_direct_view(client, retries):
     view = client[:]
