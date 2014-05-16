@@ -88,7 +88,7 @@ class VMFixIPControllerApp(IPControllerApp):
         submitted upstream so we can remove this when incorporated into released IPython.
         """
         public_ips = []
-        vm_ifaces = set(["docker0", "virbr0"])  # VM/container interfaces we do not want
+        vm_ifaces = set(["docker0", "virbr0", "lxcbr0"])  # VM/container interfaces we do not want
 
         # list of iface names, 'lo0', 'eth0', etc.
         for iface in netifaces.interfaces():
@@ -101,6 +101,8 @@ class VMFixIPControllerApp(IPControllerApp):
                         continue
                     if not (iface.startswith('lo') or addr.startswith('127.')):
                         public_ips.append(addr)
+                        # pick first valid address for each interface to avoid double bound addresses
+                        break
         public_ips = uniq_stable(public_ips)
         return public_ips[-1]
 
