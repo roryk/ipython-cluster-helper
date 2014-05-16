@@ -86,9 +86,14 @@ class VMFixIPControllerApp(IPControllerApp):
 
         Adjusts _load_ips_netifaces from IPython.utils.localinterfaces. Changes
         submitted upstream so we can remove this when incorporated into released IPython.
+
+        Prioritizes a set of common interfaces to try and make better decisions
+        when choosing from multiple choices.
         """
-        public_ips = []
+        standard_ips = []
+        priority_ips = []
         vm_ifaces = set(["docker0", "virbr0", "lxcbr0"])  # VM/container interfaces we do not want
+        priority_ifaces = ("eth",)  # Interfaces we prefer to get IPs from
 
         # list of iface names, 'lo0', 'eth0', etc.
         for iface in netifaces.interfaces():
@@ -100,10 +105,11 @@ class VMFixIPControllerApp(IPControllerApp):
                     if not addr:
                         continue
                     if not (iface.startswith('lo') or addr.startswith('127.')):
-                        public_ips.append(addr)
-                        # pick first valid address for each interface to avoid double bound addresses
-                        break
-        public_ips = uniq_stable(public_ips)
+                        if iface.startswith(priority_ifaces):
+                            priority_ips.append(addr)
+                        else:
+                            standard_ips.append(addr)
+        public_ips = uniq_stable(standard_ips + priority_ips)
         return public_ips[-1]
 
     def save_connection_dict(self, fname, cdict):
