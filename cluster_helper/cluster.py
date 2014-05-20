@@ -231,16 +231,18 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     pename = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     mem = traitlets.Unicode("", config=True)
+    memtype = traitlets.Unicode("mem_free", config=True)
     tag = traitlets.Unicode("", config=True)
+    queue_template = Unicode('')
     default_template = traitlets.Unicode("""#$ -V
 #$ -cwd
-#$ -b y
+#$ -w w
 #$ -j y
 #$ -S /bin/sh
-#$ -q {queue}
 #$ -N {tag}-e
 #$ -t 1-{n}
 #$ -pe {pename} {cores}
+{queue}
 {mem}
 {resources}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
@@ -251,12 +253,19 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
     def start(self, n):
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024)
+            if self.memtype == "rss":
+                self.context["mem"] = "#$ -l rss=%sM" % int(float(self.mem) * 1024 / self.cores)
+            else:
+                self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024)
         else:
             self.context["mem"] = ""
+        if self.queue:
+            self.context["queue"] = "#$ -q %s" % self.queue
+        else:
+            self.context["queue"] = ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["pename"] = str(self.pename)
-        self.context["resources"] = "\n".join(["#$ -l %s" % r.strip()
+        self.context["resources"] = "\n".join([_prep_sge_resource(r)
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
         return super(BcbioSGEEngineSetLauncher, self).start(n)
@@ -265,20 +274,37 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
+    queue_template = Unicode('')
     default_template = traitlets.Unicode(u"""#$ -V
-#$ -S /bin/sh
 #$ -cwd
+#$ -w w
+#$ -S /bin/sh
 #$ -N {tag}-c
+{queue}
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
     def start(self):
         self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["resources"] = "\n".join(["#$ -l %s" % r.strip()
+        self.context["resources"] = "\n".join([_prep_sge_resource(r)
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
+        if self.queue:
+            self.context["queue"] = "#$ -q %s" % self.queue
+        else:
+            self.context["queue"] = ""
         return super(BcbioSGEControllerLauncher, self).start()
+
+def _prep_sge_resource(resource):
+    """Prepare SGE resource specifications from the command line handling special cases.
+    """
+    resource = resource.strip()
+    k, v = resource.split("=")
+    if k in set(["ar"]):
+        return "#$ -%s %s" % (k, v)
+    else:
+        return "#$ -l %s" % resource
 
 def _find_parallel_environment(queue):
     """Find an SGE/OGE parallel environment for running multicore jobs in specified queue.
@@ -703,23 +729,24 @@ def _scheduler_resources(scheduler, params, queue):
     but are specific to different environments.
     """
     resources = copy.deepcopy(params.get("resources", []))
+    specials = {}
     if not resources:
         resources = []
     if isinstance(resources, basestring):
         resources = resources.split(";")
-    pename = None
     if scheduler in ["SGE"]:
         pass_resources = []
         for r in resources:
             if r.startswith("pename="):
                 _, pename = r.split("=")
+                specials["pename"] = _find_parallel_environment(queue)
+            elif r.startswith("memtype="):
+                _, memtype = r.split("=")
+                specials["memtype"] = memtype
             else:
                 pass_resources.append(r)
-        if pename is None:
-            pename = _find_parallel_environment(queue)
         resources = pass_resources
-
-    return ";".join(resources), pename
+    return ";".join(resources), specials
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
            extra_params):
@@ -738,7 +765,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
                "your scheduler. If it should, please file a bug report at "
                "http://github.com/roryk/ipython-cluster-helper. Thanks!")
         sys.exit(1)
-    resources, pename = _scheduler_resources(scheduler, extra_params, queue)
+    resources, specials = _scheduler_resources(scheduler, extra_params, queue)
     if scheduler in ["OLDSLURM", "SLURM"]:
         resources, slurm_atrs = get_slurm_attributes(queue, resources)
     else:
@@ -765,8 +792,10 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--cluster-id=%s" % (cluster_id)
          ]
     args += _get_profile_args(profile)
-    if pename:
-        args += ["--%s.pename=%s" % (engine_class, pename)]
+    if specials.get("pename"):
+        args += ["--%s.pename=%s" % (engine_class, specials["pename"])]
+    if specials.get("memtype"):
+        args += ["--%s.memtype=%s" % (engine_class, specials["memtype"])]
     if slurm_atrs:
         args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "0"))]
         args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
