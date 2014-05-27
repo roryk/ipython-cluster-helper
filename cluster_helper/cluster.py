@@ -849,6 +849,9 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
         Defaults to 16 minutes. Set to longer for slow starting clusters.
       - retries: Number of retries to allow for failed tasks.
     """
+    num_jobs = int(num_jobs)
+    cores_per_job = int(cores_per_job)
+    start_wait = int(start_wait)
 
     if extra_params is None:
         extra_params = {}
