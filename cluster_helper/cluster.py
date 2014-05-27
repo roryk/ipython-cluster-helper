@@ -914,22 +914,21 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
 
 def _nengines_up(url_file):
     "return the number of engines up"
+    client = None
     try:
         client = Client(url_file, timeout=60)
         up = len(client.ids)
     # the controller isn't up yet
     except iperror.TimeoutError:
-        return False
-        client.close()
         return 0
     # the JSON file is not available to parse
     except IOError:
-        return False
-        client.close()
         return 0
     else:
         return up
-
+    finally:
+        if client:
+            client.close()
 
 def _get_balanced_blocked_view(client, retries):
     view = client.load_balanced_view()
@@ -940,8 +939,6 @@ def _get_balanced_blocked_view(client, retries):
 
 def _shutdown(client):
     print "Sending a shutdown signal to the controller and engines."
-#    client.spin()
-#    client.shutdown(hub=True, block=False)
     client.close()
 
 def _get_direct_view(client, retries):
