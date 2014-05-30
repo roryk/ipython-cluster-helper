@@ -223,6 +223,20 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
         return super(BcbioLSFControllerLauncher, self).start()
 
 # ## Sun Grid Engine (SGE)
+
+def _local_environment_exports():
+    """Create export string for a batch script with environmental variables to pass.
+
+    Passes additional environmental variables not inherited by some schedulers.
+    LD_LIBRARY_PATH filtered by '-V' on recent Grid Engine releases.
+    """
+    exports = []
+    for envname in ["LD_LIBRARY_PATH"]:
+        envval = os.environ.get(envname)
+        if envval:
+            exports.append("export %s=%s" % (envname, envval))
+    return "\n".join(exports)
+
 class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
     """
@@ -245,6 +259,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 {queue}
 {mem}
 {resources}
+{exports}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
 """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
@@ -268,6 +283,7 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
         self.context["resources"] = "\n".join([_prep_sge_resource(r)
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
+        self.context["exports"] = _local_environment_exports()
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
@@ -282,6 +298,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 #$ -N {tag}-c
 {queue}
 {resources}
+{exports}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -294,6 +311,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
             self.context["queue"] = "#$ -q %s" % self.queue
         else:
             self.context["queue"] = ""
+        self.context["exports"] = _local_environment_exports()
         return super(BcbioSGEControllerLauncher, self).start()
 
 def _prep_sge_resource(resource):
