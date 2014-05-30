@@ -739,13 +739,15 @@ def _scheduler_resources(scheduler, params, queue):
         for r in resources:
             if r.startswith("pename="):
                 _, pename = r.split("=")
-                specials["pename"] = _find_parallel_environment(queue)
+                specials["pename"] = pename
             elif r.startswith("memtype="):
                 _, memtype = r.split("=")
                 specials["memtype"] = memtype
             else:
                 pass_resources.append(r)
         resources = pass_resources
+        if "pename" not in specials:
+            specials["pename"] = _find_parallel_environment(queue)
     return ";".join(resources), specials
 
 def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
