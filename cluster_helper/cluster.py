@@ -845,18 +845,6 @@ def _stop(profile, cluster_id):
     args += _get_profile_args(profile)
     subprocess.check_call(args)
 
-def _is_up(url_file, n):
-    try:
-        client = Client(url_file, timeout=60)
-        up = len(client.ids)
-        client.close()
-    except iperror.TimeoutError:
-        return False
-    except IOError:
-        return False
-    else:
-        return up >= n
-
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
                  start_wait=16, extra_params=None, retries=None, direct=False):
@@ -941,6 +929,7 @@ def _nengines_up(url_file):
     try:
         client = Client(url_file, timeout=60)
         up = len(client.ids)
+        client.close()
     # the controller isn't up yet
     except iperror.TimeoutError:
         return 0
@@ -949,9 +938,6 @@ def _nengines_up(url_file):
         return 0
     else:
         return up
-    finally:
-        if client:
-            client.close()
 
 def _get_balanced_blocked_view(client, retries):
     view = client.load_balanced_view()
