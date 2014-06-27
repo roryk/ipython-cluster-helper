@@ -884,7 +884,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     while 1:
         try:
             if extra_params.get("run_local"):
-                _start_local(cores_per_job, profile, cluster_id)
+                _start_local(num_jobs, profile, cluster_id)
             else:
                 _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id, extra_params)
             break
