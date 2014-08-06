@@ -51,17 +51,10 @@ def get_account_for_queue(queue):
     else:
         return possible_accounts.pop()
 
-def get_max_timelimit_for_queue(queue):
-    cmd = 'sinfo -o "%l" --noheader -p {0}'.format(queue)
-    out, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
-    return out.strip()
-
-
 def get_slurm_attributes(queue, resources):
     slurm_atrs = {}
     # specially handled resource specifications
     special_resources = set(["machines", "account", "timelimit"])
-    default_tl = "2-00:00:00" # 2 day default
     if resources:
         for parm in resources.split(";"):
             k, v = [ a.strip() for a in  parm.split('=') ]
@@ -69,10 +62,7 @@ def get_slurm_attributes(queue, resources):
     if "account" not in slurm_atrs:
         slurm_atrs["account"] = get_account_for_queue(queue)
     if "timelimit" not in slurm_atrs:
-        tl = get_max_timelimit_for_queue(queue)
-        if tl == "infinite":
-            tl = default_tl
-        slurm_atrs["timelimit"] = tl
+        slurm_atrs["timelimit"] = "1-00:00:00" # 1 day default
     # reconstitute any general attributes to pass along to slurm
     out_resources = []
     for k in slurm_atrs:

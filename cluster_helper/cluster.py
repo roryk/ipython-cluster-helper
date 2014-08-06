@@ -22,6 +22,7 @@ from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.parallel import error as iperror
 from IPython.utils.path import locate_profile
+from IPython.utils import pickleutil
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
 
@@ -29,30 +30,12 @@ from slurm import get_slurm_attributes
 import utils
 import lsf
 
-# if dill is available, override pickle with dill pickle
-# this lets us pickle way more things
-def _dill_installed():
-    try:
-        imp.find_module('dill')
-        return True
-    except ImportError:
-        return False
-
-# XXX Currently disabled: needs more testing
-#if _dill_installed():
-if False:
-    import dill
-
-    # disable special function handling
-    from types import FunctionType
-    from IPython.utils.pickleutil import can_map
-
-    can_map.pop(FunctionType, None)
-
-    # fallback to pickle instead of cPickle, so that dill can take over
-    import pickle
-    from IPython.kernel.zmq import serialize
-    serialize.pickle = pickle
+# Dill not working for complex serialization
+#try:
+#    import dill
+#except ImportError:
+#    dill = None
+dill = None
 
 DEFAULT_MEM_PER_CPU = 1000  # Mb
 
@@ -67,7 +50,7 @@ DEFAULT_MEM_PER_CPU = 1000  # Mb
 # not consecutive misses.
 timeout_params = ["--timeout=60", "--IPEngineApp.wait_for_url_file=960",
                   "--EngineFactory.max_heartbeat_misses=100"]
-controller_params = ["--nodb", "--hwm=1", "--scheme=lru",
+controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
                      "--HeartMonitor.max_heartmonitor_misses=12",
                      "--HeartMonitor.period=16000"]
 
@@ -894,11 +877,12 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             num_tries += 1
             time.sleep(delay)
     try:
+        need_engines = 1  # Start using cluster when this many engines are up
         client = None
         slept = 0
         max_up = 0
         up = 0
-        while not up == num_jobs:
+        while up < need_engines:
             up = _nengines_up(url_file)
             if up < max_up:
                 print ("Engine(s) that were up have shutdown prematurely. "
@@ -912,16 +896,19 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
                 raise IOError("Cluster startup timed out.")
         client = Client(url_file, timeout=60)
         if direct:
-            yield _get_direct_view(client, retries)
+            view = _get_direct_view(client, retries)
         else:
-            yield _get_balanced_blocked_view(client, retries)
+            view = _get_balanced_blocked_view(client, retries)
+        if dill:
+            pickleutil.use_dill()
+            view.apply(pickleutil.use_dill)
+        yield view
     finally:
         if client:
             _shutdown(client)
         _stop(profile, cluster_id)
         if has_throwaway:
             delete_profile(profile)
-
 
 def _nengines_up(url_file):
     "return the number of engines up"
