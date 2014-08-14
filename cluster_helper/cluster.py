@@ -159,7 +159,6 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
 
     def start(self, n):
         self.context["cores"] = self.cores * self.numengines
-        self.context["cmd"] = "\n".join([engine_cmd_full] * self.numengines)
         if self.mem:
             # lsf.conf can specify nonstandard units for memory reservation
             lsf_unit = lsf.get_lsf_units(resource=True)
@@ -173,6 +172,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
             self.context["mem"] = ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = _format_lsf_resources(self.resources)
+        self.context["cmd"] = "\n".join([engine_cmd_full.format(**self.context)] * self.numengines)
         return super(BcbioLSFEngineSetLauncher, self).start(n)
 
 def _format_lsf_resources(resources):
@@ -448,7 +448,6 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 
     def start(self, n):
         self.context["cores"] = self.cores * self.numengines
-        self.context["cmd"] = "\n".join([engine_cmd_full] * self.numengines)
         if self.mem:
             self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0 * self.numengines)
         else:
@@ -460,6 +459,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
+        self.context["cmd"] = "\n".join([engine_cmd_full.format(**self.context)] * self.numengines)
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
@@ -787,7 +787,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--cluster-id=%s" % (cluster_id)
          ]
     args += _get_profile_args(profile)
-    if mincores > 1:
+    if mincores > 1 and mincores > cores_per_job:
         args += ["--%s.numengines=%s" % (engine_class, mincores)]
     if specials.get("pename"):
         args += ["--%s.pename=%s" % (controller_class, specials["pename"])]
