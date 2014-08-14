@@ -1,3 +1,10 @@
+## 0.3.1 (in progress)
+
+- Add a special resource flag `-r mincores=n` which requires single core jobs to
+  use at least n cores. Useful for shared queues where we can only run multicore
+  jobs, and for sharing memory usage across multiple cores for programs with
+  spiky memory utilization like variant calling.
+
 ## 0.3.0 (August 6, 2014)
 
 - Make a cluster available after a single engine has registered. Avoids need to

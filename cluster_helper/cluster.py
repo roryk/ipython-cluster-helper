@@ -8,6 +8,7 @@ https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/distributed/ipython.
 """
 import contextlib
 import copy
+import math
 import os
 import pipes
 import uuid
@@ -16,7 +17,6 @@ import subprocess
 import time
 from distutils.version import LooseVersion
 import sys
-import imp
 
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
@@ -124,6 +124,8 @@ resource_cmds = ["import resource",
 start_cmd = "from IPython.parallel.apps.%s import launch_new_instance"
 engine_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + [start_cmd % "ipengineapp", "launch_new_instance()"])]
+engine_cmd_full = '%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"' % \
+                  (' '.join(map(pipes.quote, engine_cmd_argv)), ' '.join(timeout_params))
 cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
                    ["; ".join(resource_cmds + [start_cmd % "ipclusterapp", "launch_new_instance()"])]
 #controller_cmd_argv = [sys.executable, "-E", "-c"] + \
@@ -132,13 +134,13 @@ controller_cmd_argv = [sys.executable, "-E", "-c"] + \
                       ["; ".join(resource_cmds + ["from cluster_helper.cluster import VMFixIPControllerApp",
                                                   "VMFixIPControllerApp.launch_instance()"])]
 
-
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
     """
     batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
+    numengines = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
@@ -152,12 +154,12 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
 #BSUB -R "span[hosts=1]"
 {mem}
 {resources}
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
-           ' '.join(timeout_params)))
+{cmd}
+""")
 
     def start(self, n):
-        self.context["cores"] = self.cores
+        self.context["cores"] = self.cores * self.numengines
+        self.context["cmd"] = "\n".join([engine_cmd_full] * self.numengines)
         if self.mem:
             # lsf.conf can specify nonstandard units for memory reservation
             lsf_unit = lsf.get_lsf_units(resource=True)
@@ -165,6 +167,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
             # check if memory reservation is per core or per job
             if lsf.per_core_reservation():
                 mem = mem / self.cores
+            mem = mem * self.numengines
             self.context["mem"] = '#BSUB -R "rusage[mem=%s]"' % mem
         else:
             self.context["mem"] = ""
@@ -189,18 +192,21 @@ def _format_lsf_resources(resources):
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
     batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
+    cores = traitlets.Integer(1, config=True)
     resources = traitlets.Unicode("", config=True)
     job_array_template = Unicode('')
     queue_template = Unicode('')
     default_template = traitlets.Unicode("""#!/bin/sh
 #BSUB -q {queue}
 #BSUB -J {tag}-c
+#BSUB -n {cores}
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
     """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
            ' '.join(controller_params)))
     def start(self):
+        self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = _format_lsf_resources(self.resources)
         return super(BcbioLSFControllerLauncher, self).start()
@@ -272,6 +278,8 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
     tag = traitlets.Unicode("", config=True)
+    cores = traitlets.Integer(1, config=True)
+    pename = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     queue_template = Unicode('')
     default_template = traitlets.Unicode(u"""#$ -V
@@ -279,6 +287,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 #$ -w w
 #$ -S /bin/sh
 #$ -N {tag}-c
+{cores}
 {queue}
 {resources}
 {exports}
@@ -286,6 +295,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
     def start(self):
+        self.context["cores"] = "#$ -pe %s %s" % (self.pename, self.cores) if self.cores > 1 else ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = "\n".join([_prep_sge_resource(r)
                                                for r in str(self.resources).split(";")
@@ -415,6 +425,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     batch_file_name = Unicode(unicode("SLURM_engine" + str(uuid.uuid4())))
     machines = traitlets.Integer(0, config=True)
     cores = traitlets.Integer(1, config=True)
+    numengines = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
     account = traitlets.Unicode("", config=True)
@@ -432,16 +443,16 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 {machines}
 {mem}
 {resources}
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
-           ' '.join(timeout_params)))
+{cmd}
+""")
 
     def start(self, n):
-        self.context["cores"] = self.cores
+        self.context["cores"] = self.cores * self.numengines
+        self.context["cmd"] = "\n".join([engine_cmd_full] * self.numengines)
         if self.mem:
-            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0)
+            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0 * self.numengines)
         else:
-            self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores)
+            self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores * self.numengines)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["machines"] = ("#SBATCH %s" % (self.machines) if int(self.machines) > 0 else "")
         self.context["account"] = self.account
@@ -454,6 +465,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())))
     account = traitlets.Unicode("", config=True)
+    cores = traitlets.Integer(1, config=True)
     timelimit = traitlets.Unicode("", config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
@@ -464,6 +476,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -e bcbio-ipcontroller.err.%%j
 #SBATCH -A {account}
 #SBATCH -t {timelimit}
+#SBATCH --cpus-per-task={cores}
 {mem}
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
@@ -472,6 +485,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     def start(self):
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
+        self.context["cores"] = self.cores
         self.context["mem"] = "#SBATCH --mem=%d" % (8 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
@@ -525,53 +539,6 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         return super(BcbioOLDSLURMControllerLauncher, self).start(1)
-
-
-# ## PBS
-class BcbioPBSEngineSetLauncher(launcher.PBSEngineSetLauncher):
-    """Custom launcher handling heterogeneous clusters on PBS.
-    """
-    batch_file_name = Unicode(unicode("pbs_engines" + str(uuid.uuid4())))
-    cores = traitlets.Integer(1, config=True)
-    mem = traitlets.Unicode("", config=True)
-    tag = traitlets.Unicode("", config=True)
-    pename = traitlets.Unicode("", config=True)
-    resources = traitlets.Unicode("", config=True)
-    default_template = traitlets.Unicode("""#PBS -V
-#PBS -j oe
-#PBS -S /bin/sh
-#PBS -q {queue}
-#PBS -N {tag}-e
-#PBS -t 1-{n}
-{mem}
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-""" % (' '.join(map(pipes.quote, engine_cmd_argv)),
-       ' '.join(timeout_params)))
-
-    def start(self, n):
-        self.context["cores"] = self.cores
-        self.context["pename"] = str(self.pename)
-        if self.mem:
-            self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
-        else:
-            self.context["mem"] = ""
-        self.context["tag"] = self.tag if self.tag else "bcbio"
-        return super(BcbioPBSEngineSetLauncher, self).start(n)
-
-
-class BcbioPBSControllerLauncher(launcher.PBSControllerLauncher):
-    batch_file_name = Unicode(unicode("pbs_controller" + str(uuid.uuid4())))
-    tag = traitlets.Unicode("", config=True)
-    default_template = traitlets.Unicode(u"""#PBS -V
-#PBS -S /bin/sh
-#PBS -N {tag}-c
-%s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
-""" % (' '.join(map(pipes.quote, controller_cmd_argv)),
-       ' '.join(controller_params)))
-
-    def start(self):
-        self.context["tag"] = self.tag if self.tag else "bcbio"
-        return super(BcbioPBSControllerLauncher, self).start()
 
 # ## Torque
 class TORQUELauncher(launcher.BatchSystemLauncher):
@@ -651,12 +618,14 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
     """Launch a controller using Torque."""
     batch_file_name = Unicode(unicode("torque_controller" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
+    cores = traitlets.Integer(1, config=True)
     tag = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-c
 #PBS -j oe
+#PBS -l nodes=1:ppn={cores}
 {resources}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
@@ -666,6 +635,7 @@ cd $PBS_O_WORKDIR
     def start(self):
         """Start the controller by profile or profile_dir."""
         try:
+            self.context["cores"] = self.cores
             self.context["tag"] = self.tag if self.tag else "bcbio"
             self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
             return super(BcbioTORQUEControllerLauncher, self).start(1)
@@ -684,9 +654,12 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     batch_file_name = Unicode(u'pbspro_engines', config=True,
                               help="batch file name for the engine(s) job.")
     tag = traitlets.Unicode("", config=True)
+    cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-e
+{cores}
 cd $PBS_O_WORKDIR
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
@@ -694,6 +667,8 @@ cd $PBS_O_WORKDIR
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
+        self.context["cores"] = ("#PBS -l select=1:ncpus=%s;mem=%smb" % (self.cores, self.mem)
+                                 if self.cores > 1 and self.mem else "")
         self.context["tag"] = self.tag if self.tag else "bcbio"
         return super(BcbioPBSPROEngineSetLauncher, self).start(n)
 
@@ -704,9 +679,11 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     batch_file_name = Unicode(u'pbspro_controller', config=True,
                               help="batch file name for the controller job.")
     tag = traitlets.Unicode("", config=True)
+    cores = traitlets.Integer(1, config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-c
+{cores}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -714,6 +691,7 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
+        self.context["cores"] = "#PBS -l select=1:ncpus=%s" % self.cores if self.cores > 1 else ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
@@ -728,13 +706,22 @@ def _scheduler_resources(scheduler, params, queue):
     """Retrieve custom resource tweaks for specific schedulers.
     Handles SGE parallel environments, which allow multicore jobs
     but are specific to different environments.
+    Pulls out hacks to work in different environments:
+      - mincores -- Require a minimum number of cores when submitting jobs
+                    to avoid single core jobs on constrained queues
     """
-    resources = copy.deepcopy(params.get("resources", []))
+    orig_resources = copy.deepcopy(params.get("resources", []))
     specials = {}
-    if not resources:
-        resources = []
-    if isinstance(resources, basestring):
-        resources = resources.split(";")
+    if not orig_resources:
+        orig_resources = []
+    if isinstance(orig_resources, basestring):
+        orig_resources = orig_resources.split(";")
+    resources = []
+    for r in orig_resources:
+        if r.startswith("mincores="):
+            specials["mincores"] = int(r.split("=")[-1])
+        else:
+            resources.append(r)
     if scheduler in ["SGE"]:
         pass_resources = []
         for r in resources:
@@ -773,6 +760,10 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         resources, slurm_atrs = get_slurm_attributes(queue, resources)
     else:
         slurm_atrs = None
+    mincores = specials.get("mincores", 1)
+    if mincores > cores_per_job:
+        mincores = int(math.ceil(mincores / float(cores_per_job)))
+        num_jobs = int(math.ceil(num_jobs / float(mincores)))
 
     args = cluster_cmd_argv + \
         ["start",
@@ -782,6 +773,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--log-to-file",
          "--debug",
          "--n=%s" % num_jobs,
+         "--%s.cores=%s" % (controller_class, min(mincores, 2)),
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources='%s'" % (controller_class, resources),
          "--%s.resources='%s'" % (engine_class, resources),
@@ -795,7 +787,10 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--cluster-id=%s" % (cluster_id)
          ]
     args += _get_profile_args(profile)
+    if mincores > 1:
+        args += ["--%s.numengines=%s" % (engine_class, mincores)]
     if specials.get("pename"):
+        args += ["--%s.pename=%s" % (controller_class, specials["pename"])]
         args += ["--%s.pename=%s" % (engine_class, specials["pename"])]
     if specials.get("memtype"):
         args += ["--%s.memtype=%s" % (engine_class, specials["memtype"])]
@@ -950,7 +945,11 @@ def _slurm_is_old():
 def _slurm_version():
     version_line = subprocess.Popen("sinfo -V", shell=True,
                                     stdout=subprocess.PIPE).communicate()[0]
-    return version_line.split()[1]
+    parts = version_line.split()
+    if len(parts) > 0:
+        return version_line.split()[1]
+    else:
+        return "2.6+"
 
 # ## Temporary profile management
 
