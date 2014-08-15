@@ -124,8 +124,6 @@ resource_cmds = ["import resource",
 start_cmd = "from IPython.parallel.apps.%s import launch_new_instance"
 engine_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + [start_cmd % "ipengineapp", "launch_new_instance()"])]
-engine_cmd_full = '%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"' % \
-                  (' '.join(map(pipes.quote, engine_cmd_argv)), ' '.join(timeout_params))
 cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
                    ["; ".join(resource_cmds + [start_cmd % "ipclusterapp", "launch_new_instance()"])]
 #controller_cmd_argv = [sys.executable, "-E", "-c"] + \
@@ -133,6 +131,19 @@ cluster_cmd_argv = [sys.executable, "-E", "-c"] + \
 controller_cmd_argv = [sys.executable, "-E", "-c"] + \
                       ["; ".join(resource_cmds + ["from cluster_helper.cluster import VMFixIPControllerApp",
                                                   "VMFixIPControllerApp.launch_instance()"])]
+
+def get_engine_commands(context, n):
+    """Retrieve potentially multiple engines running in a single submit script.
+
+    Need to background the initial processes if multiple run.
+    """
+    assert n > 0
+    engine_cmd_full = '%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"' % \
+                      (' '.join(map(pipes.quote, engine_cmd_argv)), ' '.join(timeout_params))
+    out = [engine_cmd_full.format(**context)]
+    for _ in range(n - 1):
+        out.insert(0, "(%s &) &&" % (engine_cmd_full.format(**context)))
+    return "\n".join(out)
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
@@ -172,7 +183,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
             self.context["mem"] = ""
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = _format_lsf_resources(self.resources)
-        self.context["cmd"] = "\n".join([engine_cmd_full.format(**self.context)] * self.numengines)
+        self.context["cmd"] = get_engine_commands(self.context, self.numengines)
         return super(BcbioLSFEngineSetLauncher, self).start(n)
 
 def _format_lsf_resources(resources):
@@ -459,7 +470,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
-        self.context["cmd"] = "\n".join([engine_cmd_full.format(**self.context)] * self.numengines)
+        self.context["cmd"] = get_engine_commands(self.context, self.numengines)
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
