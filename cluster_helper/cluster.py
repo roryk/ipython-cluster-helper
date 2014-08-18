@@ -828,6 +828,9 @@ def _start_local(cores, profile, cluster_id):
     subprocess.check_call(args)
     return cluster_id
 
+def stop_from_view(view):
+    _stop(view.clusterhelper["profile"], view.clusterhelper["cluster_id"])
+
 def _stop(profile, cluster_id):
     args = cluster_cmd_argv + \
            ["stop", "--cluster-id=%s" % cluster_id]
@@ -905,6 +908,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
             view = _get_direct_view(client, retries)
         else:
             view = _get_balanced_blocked_view(client, retries)
+        view.clusterhelper = {"profile": profile, "cluster_id": cluster_id}
         if dill:
             pickleutil.use_dill()
             view.apply(pickleutil.use_dill)
