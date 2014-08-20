@@ -1,9 +1,10 @@
-## 0.3.1 (in progress)
+## 0.3.1 (August 20, 2014)
 
 - Add a special resource flag `-r mincores=n` which requires single core jobs to
   use at least n cores. Useful for shared queues where we can only run multicore
   jobs, and for sharing memory usage across multiple cores for programs with
-  spiky memory utilization like variant calling.
+  spiky memory utilization like variant calling. Available on LSF and SLURM for
+  testing.
 - Add hook to enable improved cleanup of controllers/engines from bcbio-nextgen.
 
 ## 0.3.0 (August 6, 2014)
