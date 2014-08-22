@@ -657,8 +657,7 @@ cd $PBS_O_WORKDIR
 class PBSPROLauncher(launcher.PBSLauncher):
     """A BatchSystemLauncher subclass for PBSPro."""
     job_array_regexp = CRegExp('#PBS\W+-J\W+[\w\d\-\$]+')
-    job_array_template = Unicode('#PBS -J 1-{n}')
-
+    job_array_template = Unicode('')
 
 class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBSPro"""
@@ -667,10 +666,12 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
+    array_cmd = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-e
-{cores}
+{resources}
+{array_cmd}
 cd $PBS_O_WORKDIR
 %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
@@ -678,9 +679,13 @@ cd $PBS_O_WORKDIR
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
-        self.context["cores"] = ("#PBS -l select=1:ncpus=%s;mem=%smb" % (self.cores, self.mem)
-                                 if self.cores > 1 and self.mem else "")
+        resources = "#PBS -l select=1:ncpus=%d" % self.cores
+        if self.mem:
+            resources += ":mem=%smb" % int(float(self.mem) * 1024)
+        self.context["resources"] = resources
+        self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
+        self.context["array_cmd"] = "" if n == 1 else "#PBS -J 1-%i" % n
         return super(BcbioPBSPROEngineSetLauncher, self).start(n)
 
 
@@ -694,7 +699,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-c
-{cores}
+#PBS -l select=1:ncpus={cores}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -702,7 +707,7 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
-        self.context["cores"] = "#PBS -l select=1:ncpus=%s" % self.cores if self.cores > 1 else ""
+        self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
