@@ -1,3 +1,10 @@
+## 0.3.2 (September 10, 2104)
+
+- Support PBSPro based on Torque setup. Thanks to Piet Jones.
+- Improve ability to run on interruptible queuing systems by increasing timeout
+  when killing non-responsive engines from a controller. Now 1 hour instead of 3
+  minutes, allowing requeueing of engines.
+
 ## 0.3.1 (August 20, 2014)
 
 - Add a special resource flag `-r mincores=n` which requires single core jobs to

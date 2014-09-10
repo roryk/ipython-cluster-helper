@@ -51,8 +51,8 @@ DEFAULT_MEM_PER_CPU = 1000  # Mb
 timeout_params = ["--timeout=60", "--IPEngineApp.wait_for_url_file=960",
                   "--EngineFactory.max_heartbeat_misses=100"]
 controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
-                     "--HeartMonitor.max_heartmonitor_misses=12",
-                     "--HeartMonitor.period=16000"]
+                     "--HeartMonitor.max_heartmonitor_misses=120",
+                     "--HeartMonitor.period=30000"]
 
 # ## Work around issues with docker and VM network interfaces
 # Can go away when we merge changes into upstream IPython
@@ -497,7 +497,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         self.context["cores"] = self.cores
-        self.context["mem"] = "#SBATCH --mem=%d" % (8 * DEFAULT_MEM_PER_CPU)
+        self.context["mem"] = "#SBATCH --mem=%d" % (12 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
