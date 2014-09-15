@@ -1,3 +1,10 @@
+## 0.3.3 (September 15, 2014)
+
+- Handle mincore specification for multicore jobs when memory limits cores to
+  less than the `mincore` amount.
+- Improve timeouts for running on interruptible queues to avoid engine failures
+  when controllers are requeued.
+
 ## 0.3.2 (September 10, 2104)
 
 - Support PBSPro based on Torque setup. Thanks to Piet Jones.

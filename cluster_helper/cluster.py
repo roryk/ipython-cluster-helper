@@ -48,11 +48,11 @@ DEFAULT_MEM_PER_CPU = 1000  # Mb
 # from controller.
 # Makes engine pingback shutdown higher, since this is
 # not consecutive misses.
-timeout_params = ["--timeout=60", "--IPEngineApp.wait_for_url_file=960",
-                  "--EngineFactory.max_heartbeat_misses=100"]
+timeout_params = ["--timeout=960", "--IPEngineApp.wait_for_url_file=960",
+                  "--EngineFactory.max_heartbeat_misses=120"]
 controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
                      "--HeartMonitor.max_heartmonitor_misses=120",
-                     "--HeartMonitor.period=30000"]
+                     "--HeartMonitor.period=60000"]
 
 # ## Work around issues with docker and VM network interfaces
 # Can go away when we merge changes into upstream IPython
@@ -778,8 +778,11 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         slurm_atrs = None
     mincores = specials.get("mincores", 1)
     if mincores > cores_per_job:
-        mincores = int(math.ceil(mincores / float(cores_per_job)))
-        num_jobs = int(math.ceil(num_jobs / float(mincores)))
+        if cores_per_job > 1:
+            mincores = cores_per_job
+        else:
+            mincores = int(math.ceil(mincores / float(cores_per_job)))
+            num_jobs = int(math.ceil(num_jobs / float(mincores)))
 
     args = cluster_cmd_argv + \
         ["start",
