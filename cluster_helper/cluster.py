@@ -242,6 +242,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     """
     batch_file_name = Unicode(unicode("sge_engine" + str(uuid.uuid4())))
     cores = traitlets.Integer(1, config=True)
+    numengines = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     mem = traitlets.Unicode("", config=True)
@@ -261,17 +262,16 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 {resources}
 {exports}
 echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-""" % (' '.join(map(pipes.quote, engine_cmd_argv)),
-       ' '.join(timeout_params)))
+{cmd}
+""")
 
     def start(self, n):
-        self.context["cores"] = self.cores
+        self.context["cores"] = self.cores * self.numengines
         if self.mem:
             if self.memtype == "rss":
-                self.context["mem"] = "#$ -l rss=%sM" % int(float(self.mem) * 1024 / self.cores)
+                self.context["mem"] = "#$ -l rss=%sM" % int(float(self.mem) * 1024 / self.cores * self.numengines)
             else:
-                self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024)
+                self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024 * self.numengines)
         else:
             self.context["mem"] = ""
         if self.queue:
@@ -284,6 +284,7 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
         self.context["exports"] = _local_environment_exports()
+        self.context["cmd"] = get_engine_commands(self.context, self.numengines)
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
@@ -296,6 +297,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
     default_template = traitlets.Unicode(u"""#$ -V
 #$ -cwd
 #$ -w w
+#$ -j y
 #$ -S /bin/sh
 #$ -N {tag}-c
 {cores}
@@ -792,7 +794,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--log-to-file",
          "--debug",
          "--n=%s" % num_jobs,
-         "--%s.cores=%s" % (controller_class, min(mincores, 2)),
+         "--%s.cores=%s" % (controller_class, specials.get("minconcores", 1)),
          "--%s.cores=%s" % (engine_class, cores_per_job),
          "--%s.resources='%s'" % (controller_class, resources),
          "--%s.resources='%s'" % (engine_class, resources),

@@ -1,7 +1,14 @@
+## 0.3.4 (October 8, 2014)
+
+- Support `mincores` resource specification for SGE.
+- Add `minconcores` resource specification for specifying if controllers should
+  use more than a single core, instead of coupling this to `mincores`. Enables
+  running on systems with only minimum requirements for core usage.
+
 ## 0.3.3 (September 15, 2014)
 
 - Handle mincore specification for multicore jobs when memory limits cores to
-  less than the `mincore` amount.
+  less than the `mincores` amount.
 - Improve timeouts for running on interruptible queues to avoid engine failures
   when controllers are requeued.
 
