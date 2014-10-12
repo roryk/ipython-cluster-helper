@@ -736,8 +736,9 @@ def _scheduler_resources(scheduler, params, queue):
         orig_resources = orig_resources.split(";")
     resources = []
     for r in orig_resources:
-        if r.startswith("mincores="):
-            specials["mincores"] = int(r.split("=")[-1])
+        if r.startswith(("mincores=", "minconcores=")):
+            name, val = r.split("=")
+            specials[name] = int(val)
         else:
             resources.append(r)
     if scheduler in ["SGE"]:

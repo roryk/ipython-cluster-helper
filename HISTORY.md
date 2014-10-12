@@ -1,3 +1,7 @@
+## 0.3.5 (October 12, 2014)
+
+- Fix `minconcores` specification to be passed correctly to controllers.
+
 ## 0.3.4 (October 8, 2014)
 
 - Support `mincores` resource specification for SGE.
