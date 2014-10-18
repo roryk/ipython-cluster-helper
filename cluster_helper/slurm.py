@@ -7,13 +7,18 @@ def get_accounts(user):
     cmd = "sshare -p --noheader"
     out, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
     accounts = []
+    has_accounts = False
     for line in out.splitlines():
         line = line.split('|')
         account = line[0].strip()
         account_user = line[1].strip()
+        if account:
+            has_accounts = True
         if account and account_user == user:
             accounts.append(account)
 
+    if not has_accounts:
+        return None
     accounts = set(accounts)
     try:
         assert not set(['']).issuperset(accounts)
@@ -39,6 +44,8 @@ def get_account_for_queue(queue):
     """
     user = get_user()
     possible_accounts = get_accounts(user)
+    if not possible_accounts:
+        return None
     queue_accounts = accounts_with_access(queue)
     try:
         assert not set(['']).issuperset(queue_accounts)
@@ -60,7 +67,9 @@ def get_slurm_attributes(queue, resources):
             k, v = [ a.strip() for a in  parm.split('=') ]
             slurm_atrs[k] = v
     if "account" not in slurm_atrs:
-        slurm_atrs["account"] = get_account_for_queue(queue)
+        account = get_account_for_queue(queue)
+        if account:
+            slurm_atrs["account"] = account
     if "timelimit" not in slurm_atrs:
         slurm_atrs["timelimit"] = "1-00:00:00" # 1 day default
     # reconstitute any general attributes to pass along to slurm

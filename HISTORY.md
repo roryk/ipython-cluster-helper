@@ -1,3 +1,8 @@
+## 0.3.6 (October 18, 2014)
+
+- Support SLURM installations that do not use accounts, skip finding and passing
+  an account flag.
+
 ## 0.3.5 (October 12, 2014)
 
 - Fix `minconcores` specification to be passed correctly to controllers.

@@ -451,8 +451,8 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH -e bcbio-ipengine.err.%%j
 #SBATCH --cpus-per-task={cores}
 #SBATCH --array=1-{n}
-#SBATCH -A {account}
 #SBATCH -t {timelimit}
+{account}
 {machines}
 {mem}
 {resources}
@@ -467,7 +467,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
             self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores * self.numengines)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["machines"] = ("#SBATCH %s" % (self.machines) if int(self.machines) > 0 else "")
-        self.context["account"] = self.account
+        self.context["account"] = ("#SBATCH -A %s" % self.account if self.account else "")
         self.context["timelimit"] = self.timelimit
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
@@ -487,9 +487,9 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -J {tag}-c
 #SBATCH -o bcbio-ipcontroller.out.%%j
 #SBATCH -e bcbio-ipcontroller.err.%%j
-#SBATCH -A {account}
 #SBATCH -t {timelimit}
 #SBATCH --cpus-per-task={cores}
+{account}
 {mem}
 {resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
@@ -499,8 +499,9 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         self.context["cores"] = self.cores
-        self.context["mem"] = "#SBATCH --mem=%d" % (12 * DEFAULT_MEM_PER_CPU)
+        self.context["mem"] = "#SBATCH --mem=%d" % (2 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
+        self.context["account"] = ("#SBATCH -A %s" % self.account if self.account else "")
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
@@ -818,10 +819,11 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         args += ["--%s.memtype=%s" % (engine_class, specials["memtype"])]
     if slurm_atrs:
         args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "0"))]
-        args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
-        args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
         args += ["--%s.timelimit='%s'" % (engine_class, slurm_atrs["timelimit"])]
         args += ["--%s.timelimit='%s'" % (controller_class, slurm_atrs["timelimit"])]
+        if slurm_atrs.get("account"):
+            args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
+            args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
     subprocess.check_call(args)
     return cluster_id
 
