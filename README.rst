@@ -49,16 +49,7 @@ cluster down and deletes the throwaway profile.
 Supported schedulers
 --------------------
 
-Platform LSF ("lsf"), Sun Grid Engine ("sge"), Torque ("torque") and
-SLURM ("slurm").
-
-More to come?
-
-Problems pickling
------------------
-If you are having problems pickling the pieces you want to parallelize (you will see errors complaining your
-item cannot be pickled), you might want to install the dill module: https://github.com/uqfoundation/dill. If dill is importable, ipython-cluster-helper
-will use the dill pickle method, which can pickle many items that the Python pickle cannot. This is currently not functional as dill has some issues pickling objects that IPython can pickle.
+Platform LSF ("lsf"), Sun Grid Engine ("sge"), Torque ("torque"), SLURM ("slurm").
 
 Credits
 -------
