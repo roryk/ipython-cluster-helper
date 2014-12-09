@@ -12,9 +12,8 @@ def get_accounts(user):
         line = line.split('|')
         account = line[0].strip()
         account_user = line[1].strip()
-        if account:
-            has_accounts = True
         if account and account_user == user:
+            has_accounts = True
             accounts.append(account)
 
     if not has_accounts:
