@@ -1,3 +1,7 @@
+## 0.3.7 (December 09, 2014)
+
+- Fix  SLURM installations that has accounts but the user is not listed.
+
 ## 0.3.6 (October 18, 2014)
 
 - Support SLURM installations that do not use accounts, skip finding and passing
