@@ -270,6 +270,8 @@ echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
         if self.mem:
             if self.memtype == "rss":
                 self.context["mem"] = "#$ -l rss=%sM" % int(float(self.mem) * 1024 / self.cores * self.numengines)
+            elif self.memtype == "virtual_free":
+                self.context["mem"] = "#$ -l virtual_free=%sM" % int(float(self.mem) * 1024 * self.numengines)
             else:
                 self.context["mem"] = "#$ -l mem_free=%sM" % int(float(self.mem) * 1024 * self.numengines)
         else:
@@ -325,7 +327,7 @@ def _prep_sge_resource(resource):
     """
     resource = resource.strip()
     k, v = resource.split("=")
-    if k in set(["ar"]):
+    if k in set(["ar", "m", "M"]):
         return "#$ -%s %s" % (k, v)
     else:
         return "#$ -l %s" % resource
