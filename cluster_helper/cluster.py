@@ -327,7 +327,7 @@ def _prep_sge_resource(resource):
     """
     resource = resource.strip()
     k, v = resource.split("=")
-    if k in set(["ar","m","M"]):
+    if k in set(["ar", "m", "M"]):
         return "#$ -%s %s" % (k, v)
     else:
         return "#$ -l %s" % resource
