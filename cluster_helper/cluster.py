@@ -501,7 +501,10 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
         self.context["account"] = self.account
         self.context["timelimit"] = self.timelimit
         self.context["cores"] = self.cores
-        self.context["mem"] = "#SBATCH --mem=%d" % (2 * DEFAULT_MEM_PER_CPU)
+        if self.mem:
+            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0)
+        else:
+            self.context["mem"] = "#SBATCH --mem=%d" % (4 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["account"] = ("#SBATCH -A %s" % self.account if self.account else "")
         self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
@@ -730,6 +733,7 @@ def _scheduler_resources(scheduler, params, queue):
     Pulls out hacks to work in different environments:
       - mincores -- Require a minimum number of cores when submitting jobs
                     to avoid single core jobs on constrained queues
+      - conmem -- Memory (in Gb) for the controller to use
     """
     orig_resources = copy.deepcopy(params.get("resources", []))
     specials = {}
@@ -739,7 +743,7 @@ def _scheduler_resources(scheduler, params, queue):
         orig_resources = orig_resources.split(";")
     resources = []
     for r in orig_resources:
-        if r.startswith(("mincores=", "minconcores=")):
+        if r.startswith(("mincores=", "minconcores=", "conmem=")):
             name, val = r.split("=")
             specials[name] = int(val)
         else:
@@ -803,7 +807,7 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--%s.resources='%s'" % (controller_class, resources),
          "--%s.resources='%s'" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
-         "--%s.mem='%s'" % (controller_class, extra_params.get("mem", "")),
+         "--%s.mem='%s'" % (controller_class, specials.get("conmem", "")),
          "--%s.tag='%s'" % (engine_class, extra_params.get("tag", "")),
          "--%s.tag='%s'" % (controller_class, extra_params.get("tag", "")),
          "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
