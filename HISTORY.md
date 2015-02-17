@@ -1,6 +1,11 @@
+## 0.4.0 (February 17, 2015)
+
+- Support `conmem` resource parameter, which enables control over the memory
+  supplied to the controller for SLURM runs.
+
 ## 0.3.7 (December 09, 2014)
 
-- Fix  SLURM installations that has accounts but the user is not listed.
+- Fix SLURM installations that has accounts but the user is not listed.
 
 ## 0.3.6 (October 18, 2014)
 
