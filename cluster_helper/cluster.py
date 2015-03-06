@@ -25,6 +25,7 @@ from IPython.utils.path import locate_profile, get_ipython_dir
 from IPython.utils import pickleutil
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
+from IPython.core.profiledir import ProfileDir
 
 from slurm import get_slurm_attributes
 import utils
@@ -1004,7 +1005,8 @@ def _get_balanced_blocked_view(client, retries):
 def _create_base_ipython_dirs():
     """Create default user directories to prevent potential race conditions downstream.
     """
-    utils.safe_makedir(os.path.join(get_ipython_dir(), "db"))
+    utils.safe_makedir(get_ipython_dir())
+    ProfileDir.create_profile_dir_by_name(get_ipython_dir())
     utils.safe_makedir(os.path.join(locate_profile(), "db"))
 
 def _shutdown(client):
