@@ -21,7 +21,7 @@ import sys
 from IPython.parallel import Client
 from IPython.parallel.apps import launcher
 from IPython.parallel import error as iperror
-from IPython.utils.path import locate_profile
+from IPython.utils.path import locate_profile, get_ipython_dir
 from IPython.utils import pickleutil
 from IPython.utils import traitlets
 from IPython.utils.traitlets import (List, Unicode, CRegExp)
@@ -877,6 +877,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     max_delay = start_wait * 60
     delay = 5 if extra_params.get("run_local") else 30
     max_tries = 10
+    _create_base_ipython_dirs()
     if profile is None:
         has_throwaway = True
         profile = create_throwaway_profile()
@@ -999,6 +1000,12 @@ def _get_balanced_blocked_view(client, retries):
     if retries:
         view.set_flags(retries=int(retries))
     return view
+
+def _create_base_ipython_dirs():
+    """Create default user directories to prevent potential race conditions downstream.
+    """
+    utils.safe_makedir(os.path.join(get_ipython_dir(), "db"))
+    utils.safe_makedir(os.path.join(locate_profile(), "db"))
 
 def _shutdown(client):
     print "Sending a shutdown signal to the controller and engines."

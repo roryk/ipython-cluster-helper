@@ -1,3 +1,8 @@
+## 0.4.1 (March 6, 2015)
+
+- Pre-create IPython database directory to prevent race conditions on
+  new filesystems with a shared home directory, like AWS.
+
 ## 0.4.0 (February 17, 2015)
 
 - Support `conmem` resource parameter, which enables control over the memory
