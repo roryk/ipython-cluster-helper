@@ -1,3 +1,8 @@
+## 0.4.2 (March 7, 2015)
+
+- Additional IPython preparation cleanups to prevent race conditions. Thanks to
+  Lorena Pantano.
+
 ## 0.4.1 (March 6, 2015)
 
 - Pre-create IPython database directory to prevent race conditions on

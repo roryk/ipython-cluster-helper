@@ -1007,6 +1007,7 @@ def _create_base_ipython_dirs():
     """
     utils.safe_makedir(get_ipython_dir())
     ProfileDir.create_profile_dir_by_name(get_ipython_dir())
+    utils.safe_makedir(os.path.join(get_ipython_dir(), "db"))
     utils.safe_makedir(os.path.join(locate_profile(), "db"))
 
 def _shutdown(client):
