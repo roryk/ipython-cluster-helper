@@ -1,3 +1,7 @@
+## 0.4.3 (March 18, 2015)
+
+- Fix resource specification problem for SGE. Thanks to Zhengqiu Cai.
+
 ## 0.4.2 (March 7, 2015)
 
 - Additional IPython preparation cleanups to prevent race conditions. Thanks to

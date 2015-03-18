@@ -327,8 +327,11 @@ def _prep_sge_resource(resource):
     """Prepare SGE resource specifications from the command line handling special cases.
     """
     resource = resource.strip()
-    k, v = resource.split("=")
-    if k in set(["ar", "m", "M"]):
+    try:
+        k, v = resource.split("=")
+    except ValueError:
+        k, v = None, None
+    if k and k in set(["ar", "m", "M"]):
         return "#$ -%s %s" % (k, v)
     else:
         return "#$ -l %s" % resource
