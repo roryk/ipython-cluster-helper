@@ -1014,7 +1014,7 @@ def _create_base_ipython_dirs():
     utils.safe_makedir(os.path.join(locate_profile(), "db"))
 
 def _shutdown(client):
-    print "Sending a shutdown signal to the controller and engines."
+    print ("Sending a shutdown signal to the controller and engines.")
     client.close()
 
 def _get_direct_view(client, retries):

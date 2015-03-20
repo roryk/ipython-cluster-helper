@@ -139,5 +139,5 @@ def per_core_reservation():
     return False
 
 if __name__ == "__main__":
-    print get_lsf_units()
-    print per_core_reservation()
+    print (get_lsf_units())
+    print (per_core_reservation())
