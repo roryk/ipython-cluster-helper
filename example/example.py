@@ -44,6 +44,7 @@ if __name__ == "__main__":
                       'mem': args.mem}
 
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
+                      cores_per_job=args.cores_per_job,
                       start_wait=args.timeout,
                       profile=args.profile, extra_params=args.resources) as view:
         print "First check to see if we can talk to the engines."
