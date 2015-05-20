@@ -1,2 +1,4 @@
+install:
+  - python setup.py install
 language: python
 script: python example/example.py --local
