@@ -69,5 +69,7 @@ Contributors
 * James Porter (@porterjamesj)
 * Billy Ziege (@billyziege)
 * ink1 (@ink1)
+* @mjdellwo
+* @matthias-k
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen

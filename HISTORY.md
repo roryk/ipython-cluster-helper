@@ -1,3 +1,10 @@
+## 0.4.5 (May 20, 2015)
+- Added --local and --cores-per-job support to the example script (@matthias-k)
+- Add ability to get a cluster view without the context manager (@matthias-k)
+
+## 0.4.4 (April 23, 2014)
+- Python 3 compatibility (@mjdellwo)
+
 ## 0.4.3 (March 18, 2015)
 
 - Fix resource specification problem for SGE. Thanks to Zhengqiu Cai.
