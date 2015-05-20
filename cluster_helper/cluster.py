@@ -6,6 +6,7 @@ http://ipython.org/ipython-doc/stable/parallel/index.html
 Borrowed from Brad Chapman's implementation:
 https://github.com/chapmanb/bcbio-nextgen/blob/master/bcbio/distributed/ipython.py
 """
+from __future__ import print_function
 import contextlib
 import copy
 import math
@@ -870,9 +871,13 @@ class ClusterView(object):
       - start_wait: How long to wait for the cluster to startup, in minutes.
         Defaults to 16 minutes. Set to longer for slow starting clusters.
       - retries: Number of retries to allow for failed tasks.
+      - wait_for_all_engines: If False (default), start using cluster
+           as soon as first engine is up. If True, wait for all
+           engines.
     """
     def __init__(self, scheduler, queue, num_jobs, cores_per_job=1, profile=None,
-                 start_wait=16, extra_params=None, retries=None, direct=False):
+                 start_wait=16, extra_params=None, retries=None, direct=False,
+                 wait_for_all_engines=False):
         self.stopped = False
         self.profile = profile
         num_jobs = int(num_jobs)
@@ -915,14 +920,19 @@ class ClusterView(object):
 
         try:
             self.client = None
-            need_engines = 1  # Start using cluster when this many engines are up
+            if wait_for_all_engines:
+                # Start using cluster when this many engines are up
+                need_engines = num_jobs
+            else:
+                need_engines = 1
             slept = 0
             max_up = 0
             up = 0
             while up < need_engines:
                 up = _nengines_up(url_file)
+                print('\r{0} Engines running'.format(up), end="")
                 if up < max_up:
-                    print ("Engine(s) that were up have shutdown prematurely. "
+                    print ("\nEngine(s) that were up have shutdown prematurely. "
                            "Aborting cluster startup.")
                     _stop(self.profile, self.cluster_id)
                     sys.exit(1)
@@ -969,6 +979,7 @@ class ClusterView(object):
         https://github.com/roryk/ipython-cluster-helper/issues
 
                             """)
+            print()
             self.client = Client(url_file, timeout=60)
             if direct:
                 self.view = _get_direct_view(self.client, retries)
@@ -1001,7 +1012,8 @@ class ClusterView(object):
 
 @contextlib.contextmanager
 def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
-                 start_wait=16, extra_params=None, retries=None, direct=False):
+                 start_wait=16, extra_params=None, retries=None, direct=False,
+                 wait_for_all_engines=False):
     """Provide a view on an ipython cluster for processing.
 
       - scheduler: The type of cluster to start (lsf, sge, pbs, torque).
@@ -1013,7 +1025,8 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     """
     cluster_view = ClusterView(scheduler, queue, num_jobs, cores_per_job=cores_per_job,
                                profile=profile, start_wait=start_wait, extra_params=extra_params,
-                               retries=retries, direct=False)
+                               retries=retries, direct=False,
+                               wait_for_all_engines=wait_for_all_engines)
     try:
         yield cluster_view.view
     finally:
