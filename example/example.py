@@ -1,10 +1,9 @@
-from cluster_helper.cluster import cluster_view
 import argparse
 import time
 import imp
-
+import sys
 from IPython.parallel import require
-
+from cluster_helper.cluster import cluster_view
 
 def long_computation(x, y, z):
     import time
@@ -22,11 +21,11 @@ def context_test(x):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="example script for doing parallel "
                                      "work with IPython.")
-    parser.add_argument("--scheduler", dest='scheduler', required=True,
+    parser.add_argument("--scheduler", dest='scheduler', default="",
                         help="scheduler to use (lsf, sge, torque, slurm, or pbs)")
-    parser.add_argument("--queue", dest='queue', required=True,
+    parser.add_argument("--queue", dest='queue', default="",
                         help="queue to use on scheduler.")
-    parser.add_argument("--num_jobs", dest='num_jobs', required=True,
+    parser.add_argument("--num_jobs", dest='num_jobs', default=3,
                         type=int, help="number of jobs to run in parallel.")
     parser.add_argument("--cores_per_job", dest="cores_per_job", default=1,
                         type=int, help="number of cores for each job.")
@@ -38,10 +37,18 @@ if __name__ == "__main__":
                         help="Time (in minutes) to wait before timing out.")
     parser.add_argument("--memory", dest="mem", default=1,
                         help="Memory in GB to reserve.")
+    parser.add_argument("--local", dest="local", default=False, action="store_true")
 
     args = parser.parse_args()
     args.resources = {'resources': args.resources,
                       'mem': args.mem}
+    if args.local:
+    	args.resources["run_local"] = True
+
+    if not (args.local or (args.scheduler and args.queue)):
+        print ("Please specify --local to run locally or a scheduler and queue"
+               "to run on with --scheduler and --queue")
+        sys.exit(1)
 
     with cluster_view(args.scheduler, args.queue, args.num_jobs,
                       cores_per_job=args.cores_per_job,
