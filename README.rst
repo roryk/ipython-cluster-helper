@@ -1,7 +1,7 @@
 ipython-cluster-helper
 ======================
 .. image:: https://travis-ci.org/roryk/ipython-cluster-helper.svg
-.. image:: https://zenodo.org/badge/doi/10.5281/zenodo.17119.svg
+.. image:: https://zenodo.org/badge/3658/roryk/ipython-cluster-helper.svg
     :target: https://zenodo.org/record/17119#.VT7oWs5dqyM
 
 Quickly and easily parallelize Python functions using IPython on a
