@@ -1,3 +1,6 @@
+## 0.4.6 (in progress)
+- Added wait_for_all_engines support to return the view only after all engines are up (@matthias-k)
+
 ## 0.4.5 (May 20, 2015)
 - Added --local and --cores-per-job support to the example script (@matthias-k)
 - Add ability to get a cluster view without the context manager (@matthias-k)
