@@ -1,4 +1,7 @@
-## 0.4.6 (in progress)
+## 0.4.6 (July 22, 2015)
+- Support `numengines` for Torque and PBSPro for correct parallelization with bcbio-nextgen.
+- Ensure we only install IPython < 4.0 since 4.0 development versions split out IPython parallel
+  into a new namespace. Will support this when it is officially released.
 - Added wait_for_all_engines support to return the view only after all engines are up (@matthias-k)
 
 ## 0.4.5 (May 20, 2015)

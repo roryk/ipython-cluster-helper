@@ -608,6 +608,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     tag = traitlets.Unicode("", config=True)
+    numengines = traitlets.Integer(1, config=True)
     resources = traitlets.Unicode("", config=True)
     batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
                               config=True, help="batch file name for the engine(s) job.")
@@ -620,20 +621,21 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
 {mem}
 {resources}
 cd $PBS_O_WORKDIR
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
-           ' '.join(timeout_params)))
+{cmd}
+""")
 
     def start(self, n):
         """Start n engines by profile or profile_dir."""
         try:
-            self.context["cores"] = self.cores
+            self.context["cores"] = self.cores * self.numengines
             if self.mem:
-                self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024)
+                self.context["mem"] = "#PBS -l mem=%smb" % int(float(self.mem) * 1024 * self.numengines)
             else:
                 self.context["mem"] = ""
+
             self.context["tag"] = self.tag if self.tag else "bcbio"
             self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
+            self.context["cmd"] = get_engine_commands(self.context, self.numengines)
             return super(BcbioTORQUEEngineSetLauncher, self).start(n)
         except:
             self.log.exception("Engine start failed")
@@ -679,6 +681,7 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
+    numengines = traitlets.Integer(1, config=True)
     array_cmd = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
@@ -686,21 +689,19 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
 {resources}
 {array_cmd}
 cd $PBS_O_WORKDIR
-%s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
-    """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
-           ' '.join(timeout_params)))
+{cmd}
+""")
 
     def start(self, n):
-        """Start n engines by profile or profile_dir."""
-        resources = "#PBS -l select=1:ncpus=%d" % self.cores
+        resources = "#PBS -l select=1:ncpus=%d" % (self.cores * self.numengines)
         if self.mem:
-            resources += ":mem=%smb" % int(float(self.mem) * 1024)
+            resources += ":mem=%smb" % int(float(self.mem) * 1024 * self.numengines)
         self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["array_cmd"] = "" if n == 1 else "#PBS -J 1-%i" % n
+        self.context["cmd"] = get_engine_commands(self.context, self.numengines)
         return super(BcbioPBSPROEngineSetLauncher, self).start(n)
-
 
 class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBSPro."""
