@@ -1,3 +1,6 @@
+## 0.4.7 (current)
+- Support for IPython 4.0 (@brainstorm, @roryk, @chapmanb, @lpantano)
+
 ## 0.4.6 (July 22, 2015)
 - Support `numengines` for Torque and PBSPro for correct parallelization with bcbio-nextgen.
 - Ensure we only install IPython < 4.0 since 4.0 development versions split out IPython parallel
