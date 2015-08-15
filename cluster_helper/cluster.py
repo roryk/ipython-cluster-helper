@@ -22,7 +22,7 @@ import sys
 from ipyparallel import Client
 from ipyparallel.apps import launcher
 from ipyparallel import error as iperror
-from IPython.utils.path import locate_profile, get_ipython_dir
+from IPython.paths import locate_profile, get_ipython_dir
 from ipykernel import pickleutil
 import traitlets
 from traitlets import (List, Unicode, CRegExp)
