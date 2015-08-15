@@ -1,3 +1,7 @@
+## 0.4.8 (August 15, 2015)
+
+- Fix tarball issue, ensuring requirements.txt included.
+
 ## 0.4.7 (August 15, 2015)
 
 - Support for IPython 4.0 (@brainstorm, @roryk, @chapmanb, @lpantano)
