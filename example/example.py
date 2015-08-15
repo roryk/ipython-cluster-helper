@@ -2,7 +2,7 @@ import argparse
 import time
 import imp
 import sys
-from IPython.parallel import require
+from ipyparallel import require
 from cluster_helper.cluster import cluster_view
 
 def long_computation(x, y, z):

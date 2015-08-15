@@ -3,6 +3,7 @@
 - Ensure we only install IPython < 4.0 since 4.0 development versions split out IPython parallel
   into a new namespace. Will support this when it is officially released.
 - Added wait_for_all_engines support to return the view only after all engines are up (@matthias-k)
+- IPython.parallel is moving towards separate packages (@brainstorm).
 
 ## 0.4.5 (May 20, 2015)
 - Added --local and --cores-per-job support to the example script (@matthias-k)

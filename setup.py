@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
+from pip.req import parse_requirements
+from pip.download import PipSession
+
+install_reqs = parse_requirements("requirements.txt", session=PipSession())
+reqs = [str(ir.req) for ir in install_reqs]
 
 setup(name = "ipython-cluster-helper",
-      version = "0.4.6",
+      version = "0.4.7",
       author = "Rory Kirchner",
       author_email = "rory.kirchner@gmail.com",
       description = "Simplify IPython cluster start up and use for multiple schedulers.",
@@ -11,7 +16,4 @@ setup(name = "ipython-cluster-helper",
       zip_safe=False,
       url = "https://github.com/roryk/ipython-cluster-helper",
       packages = find_packages(),
-      install_requires = [
-          "pyzmq >= 2.1.11",
-          "ipython >=1.1.0,<4.0",
-          "netifaces >= 0.10.3"])
+      install_requires = reqs)

@@ -1,6 +1,6 @@
 """Distributed execution using an IPython cluster.
 
-Uses IPython parallel to setup a cluster and manage execution:
+Uses ipyparallel to setup a cluster and manage execution:
 
 http://ipython.org/ipython-doc/stable/parallel/index.html
 Borrowed from Brad Chapman's implementation:
@@ -19,13 +19,13 @@ import time
 from distutils.version import LooseVersion
 import sys
 
-from IPython.parallel import Client
-from IPython.parallel.apps import launcher
-from IPython.parallel import error as iperror
+from ipyparallel import Client
+from ipyparallel.apps import launcher
+from ipyparallel import error as iperror
 from IPython.utils.path import locate_profile, get_ipython_dir
-from IPython.utils import pickleutil
-from IPython.utils import traitlets
-from IPython.utils.traitlets import (List, Unicode, CRegExp)
+from ipykernel import pickleutil
+import traitlets
+from traitlets import (List, Unicode, CRegExp)
 from IPython.core.profiledir import ProfileDir
 
 from slurm import get_slurm_attributes
@@ -62,7 +62,7 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
 import json
 import stat
 import netifaces
-from IPython.parallel.apps.ipcontrollerapp import IPControllerApp
+from ipyparallel.apps.ipcontrollerapp import IPControllerApp
 from IPython.utils.data import uniq_stable
 
 class VMFixIPControllerApp(IPControllerApp):
@@ -123,7 +123,7 @@ resource_cmds = ["import resource",
                  "target_hdls = min(max_hdls, %s) if max_hdls > 0 else %s" % (target_procs, target_procs),
                  "resource.setrlimit(resource.RLIMIT_NOFILE, (max(cur_hdls, target_hdls), max_hdls))"]
 
-start_cmd = "from IPython.parallel.apps.%s import launch_new_instance"
+start_cmd = "from ipyparallel.apps.%s import launch_new_instance"
 engine_cmd_argv = [sys.executable, "-E", "-c"] + \
                   ["; ".join(resource_cmds + [start_cmd % "ipengineapp", "launch_new_instance()"])]
 cluster_cmd_argv = [sys.executable, "-E", "-c"] + \

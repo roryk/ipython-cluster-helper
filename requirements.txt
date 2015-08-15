@@ -1,0 +1,6 @@
+pyzmq >= 2.1.11
+ipython >= 1.1.0
+netifaces >= 0.10.3
+git+https://github.com/ipython/ipyparallel/archive/master.tar.gz#egg=ipyparallel
+git+https://github.com/ipython/ipykernel/archive/master.tar.gz#egg=ipykernel
+git+https://github.com/ipython/traitlets/archive/master.tar.gz#egg=traitlets
