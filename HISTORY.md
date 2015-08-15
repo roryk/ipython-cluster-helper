@@ -1,4 +1,5 @@
-## 0.4.7 (current)
+## 0.4.7 (August 15, 2015)
+
 - Support for IPython 4.0 (@brainstorm, @roryk, @chapmanb, @lpantano)
 
 ## 0.4.6 (July 22, 2015)
