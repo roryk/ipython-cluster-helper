@@ -1,3 +1,7 @@
+## 0.4.9 (August 17, 2015)
+
+- Fix memory reources for LSF when jobs requests 1 core and mincore has a value > 1.
+
 ## 0.4.8 (August 15, 2015)
 
 - Fix tarball issue, ensuring requirements.txt included.

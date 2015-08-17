@@ -2,6 +2,8 @@ import os
 import subprocess
 import fnmatch
 
+import utils
+
 LSB_PARAMS_FILENAME = "lsb.params"
 LSF_CONF_FILENAME = "lsf.conf"
 LSF_CONF_ENV = ["LSF_CONFDIR", "LSF_ENVDIR"]
@@ -111,6 +113,14 @@ def get_lsf_units(resource=False):
         return DEFAULT_RESOURCE_UNITS
     else:
         return DEFAULT_LSF_UNITS
+
+def parse_memory(mem):
+    """
+    Parse memory parameter
+    """
+    lsf_unit = get_lsf_units(resource=True)
+    return utils.convert_mb(float(mem) * 1024, lsf_unit)
+
 
 def per_core_reservation():
     """

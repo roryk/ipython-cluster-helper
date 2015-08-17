@@ -174,8 +174,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
         self.context["cores"] = self.cores * self.numengines
         if self.mem:
             # lsf.conf can specify nonstandard units for memory reservation
-            lsf_unit = lsf.get_lsf_units(resource=True)
-            mem = utils.convert_mb(float(self.mem) * 1024, lsf_unit)
+            mem = lsf.parse_memory(float(self.mem))
             # check if memory reservation is per core or per job
             if lsf.per_core_reservation():
                 mem = mem / self.cores
@@ -797,8 +796,10 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
         if cores_per_job > 1:
             mincores = cores_per_job
         else:
+            mem = lsf.parse_memory(extra_params["mem"])
             mincores = int(math.ceil(mincores / float(cores_per_job)))
             num_jobs = int(math.ceil(num_jobs / float(mincores)))
+            extra_params["mem"] = "%s" % max(int(mem / mincores) / 1024, 1)
 
     args = cluster_cmd_argv + \
         ["start",

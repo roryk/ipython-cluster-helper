@@ -7,7 +7,7 @@ install_reqs = parse_requirements("requirements.txt", session=PipSession())
 reqs = [str(ir.req) for ir in install_reqs]
 
 setup(name = "ipython-cluster-helper",
-      version = "0.4.8",
+      version = "0.4.9",
       author = "Rory Kirchner",
       author_email = "rory.kirchner@gmail.com",
       description = "Simplify IPython cluster start up and use for multiple schedulers.",
