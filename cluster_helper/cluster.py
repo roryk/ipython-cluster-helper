@@ -424,13 +424,10 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
     """
     submit_command = List(['sbatch'], config=True,
                           help="The SLURM submit command ['sbatch']")
-    # Send SIGKILL instead of term, otherwise the job is "CANCELLED", not
-    # "FINISHED"
-    delete_command = List(['scancel', '--signal=KILL'], config=True,
+    delete_command = List(['scancel'], config=True,
                           help="The SLURM delete command ['scancel']")
     job_id_regexp = CRegExp(r'\d+', config=True,
                             help="A regular expression used to get the job id from the output of 'sbatch'")
-
     batch_file = Unicode(u'', config=True,
                          help="The string that is the batch script template itself.")
 
