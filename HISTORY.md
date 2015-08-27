@@ -1,3 +1,6 @@
+## 0.5.0-dev (current)
+- Don't send SIGKILL to SLURM job arrays since it often doesn't kill all of the jobs. (@mwojcikowski)
+
 ## 0.4.9 (August 17, 2015)
 
 - Fix memory reources for LSF when jobs requests 1 core and mincore has a value > 1.
