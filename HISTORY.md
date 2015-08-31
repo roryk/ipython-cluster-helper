@@ -1,4 +1,6 @@
 ## 0.5.0-dev (current)
+
+- Change timeouts to provide faster startup for IPython clusters (thanks to Maciej Wójcikowski)
 - Don't send SIGKILL to SLURM job arrays since it often doesn't kill all of the jobs. (@mwojcikowski)
 
 ## 0.4.9 (August 17, 2015)

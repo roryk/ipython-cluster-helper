@@ -43,18 +43,14 @@ DEFAULT_MEM_PER_CPU = 1000  # Mb
 
 # ## Custom launchers
 
-# Handles longer timeouts for startup and shutdown
-# with pings between engine and controller.
-# Update the ping period to 15 seconds instead of 3.
-# Shutdown engines if they cannot be contacted for 3 minutes
-# from controller.
-# Makes engine pingback shutdown higher, since this is
-# not consecutive misses.
+# Handles longer timeouts for startup and shutdown ith pings between engine and controller.
+# Makes engine pingback shutdown higher, since this is not consecutive misses.
+# Gives 1 hour of non-resposiveness before a shutdown to handle interruptable queues.
 timeout_params = ["--timeout=960", "--IPEngineApp.wait_for_url_file=960",
                   "--EngineFactory.max_heartbeat_misses=120"]
 controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
-                     "--HeartMonitor.max_heartmonitor_misses=120",
-                     "--HeartMonitor.period=60000"]
+                     "--HeartMonitor.max_heartmonitor_misses=720",
+                     "--HeartMonitor.period=5000"]
 
 # ## Work around issues with docker and VM network interfaces
 # Can go away when we merge changes into upstream IPython
@@ -886,7 +882,7 @@ class ClusterView(object):
         if extra_params is None:
             extra_params = {}
         max_delay = start_wait * 60
-        delay = 5 if extra_params.get("run_local") else 30
+        delay = 5
         max_tries = 10
         _create_base_ipython_dirs()
         if self.profile is None:
