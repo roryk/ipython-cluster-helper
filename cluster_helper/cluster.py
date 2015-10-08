@@ -173,7 +173,7 @@ class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
             mem = lsf.parse_memory(float(self.mem))
             # check if memory reservation is per core or per job
             if lsf.per_core_reservation():
-                mem = mem / self.cores
+                mem = mem / (self.cores * self.numengines)
             mem = mem * self.numengines
             self.context["mem"] = '#BSUB -R "rusage[mem=%s]"' % mem
         else:
