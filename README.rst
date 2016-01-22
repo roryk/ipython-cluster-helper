@@ -1,6 +1,7 @@
 ipython-cluster-helper
 ======================
 .. image:: https://travis-ci.org/roryk/ipython-cluster-helper.svg
+    :target: https://travis-ci.org/roryk/ipython-cluster-helper
 .. image:: https://zenodo.org/badge/3658/roryk/ipython-cluster-helper.svg
     :target: https://zenodo.org/record/17119#.VT7oWs5dqyM
 
