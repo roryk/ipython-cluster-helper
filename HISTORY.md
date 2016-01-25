@@ -1,3 +1,6 @@
+## 0.5.1 (January 25, 2015)
+- Add support for UGE (an open-source fork of SGE) Thanks to Andrew Oler.
+
 ## 0.5.0 (October 8, 2015)
 
 - Adjust memory resource fixes for LSF to avoid underscheduling memory on other clusters
