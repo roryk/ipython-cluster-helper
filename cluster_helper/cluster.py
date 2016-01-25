@@ -16,6 +16,7 @@ import uuid
 import shutil
 import subprocess
 import time
+import re
 from distutils.version import LooseVersion
 import sys
 
@@ -402,8 +403,7 @@ def _queue_can_access_pe(pe_name, queue):
         queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
     except:
         return False
-    for test_pe_name in queue_config["pe_list"].split():
-        test_pe_name = test_pe_name.split(",")[0].strip()
+    for test_pe_name in re.split('\W+|,', queue_config["pe_list"]):
         if test_pe_name == pe_name:
             return True
     return False
