@@ -73,5 +73,7 @@ Contributors
 * ink1 (@ink1)
 * @mjdellwo
 * @matthias-k
+* Andrew Oler (@oleraj)
+
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
