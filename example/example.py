@@ -33,7 +33,7 @@ if __name__ == "__main__":
                         help="Optional profile to test.")
     parser.add_argument("--resources", dest="resources", default=None,
                         help=("Native specification flags to the scheduler, pass "
-                              "multiple flags using ; as a separator.")
+                              "multiple flags using ; as a separator."))
     parser.add_argument("--timeout", dest="timeout", default=15,
                         help="Time (in minutes) to wait before timing out.")
     parser.add_argument("--memory", dest="mem", default=1,
