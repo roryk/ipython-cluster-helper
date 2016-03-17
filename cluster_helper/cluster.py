@@ -704,6 +704,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
                               help="batch file name for the controller job.")
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-c
