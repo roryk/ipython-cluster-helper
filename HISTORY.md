@@ -1,3 +1,6 @@
+## 0.5.2 (in progress)
+- Fix passing optional resources to PBSPro. Thanks to Endre Sebestyén.
+
 ## 0.5.1 (January 25, 2015)
 - Add support for UGE (an open-source fork of SGE) Thanks to Andrew Oler.
 
