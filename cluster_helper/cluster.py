@@ -675,6 +675,7 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     mem = traitlets.Unicode("", config=True)
     numengines = traitlets.Integer(1, config=True)
     array_cmd = traitlets.Unicode("", config=True)
+    resources = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-e
@@ -688,6 +689,7 @@ cd $PBS_O_WORKDIR
         resources = "#PBS -l select=1:ncpus=%d" % (self.cores * self.numengines)
         if self.mem:
             resources += ":mem=%smb" % int(float(self.mem) * 1024 * self.numengines)
+        resources = "\n".join([resources] + _prep_pbspro_resources(self.resources))
         self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
@@ -706,6 +708,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
 #PBS -V
 #PBS -N {tag}-c
 #PBS -l select=1:ncpus={cores}
+{resources}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -713,9 +716,34 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
+        resources = "\n".join(_prep_pbspro_resources(self.resources))
+        self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
+        self.resources = resources
         return super(BcbioPBSPROControllerLauncher, self).start(1)
+
+def _prep_pbspro_resources(resources):
+    """Prepare resources passed to pbspro from input parameters.
+    """
+    out = []
+    has_walltime = False
+    for r in resources.split(";"):
+        if "=" in r:
+            k, v = r.split("=")
+            k.strip()
+            v.strip()
+        else:
+            k = ""
+        if k.lower() in ["a", "account", "acct"] and v:
+            out.append("#PBS -A %s" % v)
+        elif r.strip():
+            if k.lower() == "walltime":
+                has_walltime = True
+            out.append("#PBS -l %s" % r.strip())
+    if not has_walltime:
+        out.append("#PBS -l walltime=239:00:00")
+    return out
 
 
 def _get_profile_args(profile):
