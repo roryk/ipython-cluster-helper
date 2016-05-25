@@ -1,3 +1,4 @@
+setuptools>=18.5
 pyzmq>=2.1.11
 ipython>=4.0.0
 ipyparallel>=4.0.0
