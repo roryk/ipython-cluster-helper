@@ -33,13 +33,6 @@ from slurm import get_slurm_attributes
 import utils
 import lsf
 
-# Dill not working for complex serialization
-#try:
-#    import dill
-#except ImportError:
-#    dill = None
-dill = None
-
 DEFAULT_MEM_PER_CPU = 1000  # Mb
 
 # ## Custom launchers
@@ -666,21 +659,33 @@ class PBSPROLauncher(launcher.PBSLauncher):
     job_array_regexp = CRegExp('#PBS\W+-J\W+[\w\d\-\$]+')
     job_array_template = Unicode('')
 
+    def stop(self):
+        job_ids = self.job_id.split(";")
+        for job in job_ids:
+            subprocess.check_call("qdel %s" % job, shell=True)
+
+    def notify_start(self, data):
+        self.log.debug('Process %r started: %r', self.args[0], data)
+        self.start_data = data
+        self.state = 'running'
+        self.job_id = data
+        return data
+
 class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBSPro"""
-    batch_file_name = Unicode(u'pbspro_engines', config=True,
+
+    batch_file_name = Unicode(unicode('pbspro_engines' + str(uuid.uuid4())),
+                              config=True,
                               help="batch file name for the engine(s) job.")
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
     numengines = traitlets.Integer(1, config=True)
-    array_cmd = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-e
 {resources}
-{array_cmd}
 cd $PBS_O_WORKDIR
 {cmd}
 """)
@@ -693,14 +698,24 @@ cd $PBS_O_WORKDIR
         self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["array_cmd"] = "" if n == 1 else "#PBS -J 1-%i" % n
         self.context["cmd"] = get_engine_commands(self.context, self.numengines)
-        return super(BcbioPBSPROEngineSetLauncher, self).start(n)
+        self.write_batch_script(n)
+        job_ids = []
+        submit_cmd = "qsub < %s" % self.batch_file_name
+        for i in range(n):
+            output = subprocess.check_output("qsub < %s" % self.batch_file_name,
+                                             shell=True)
+            job_ids.append(output.strip())
+        job_id = ";".join(job_ids)
+        self.notify_start(job_id)
+        return job_id
+
 
 class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBSPro."""
 
-    batch_file_name = Unicode(u'pbspro_controller', config=True,
+    batch_file_name = Unicode(unicode("pbspro_controller" + str(uuid.uuid4())),
+                              config=True,
                               help="batch file name for the controller job.")
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
@@ -1009,9 +1024,6 @@ class ClusterView(object):
                 self.view = _get_balanced_blocked_view(self.client, retries)
             self.view.clusterhelper = {"profile": self.profile,
                                        "cluster_id": self.cluster_id}
-            if dill:
-                pickleutil.use_dill()
-                self.view.apply(pickleutil.use_dill)
         except:
             self.stop()
             raise
