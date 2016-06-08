@@ -252,7 +252,6 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
 {mem}
 {resources}
 {exports}
-echo \($SGE_TASK_ID - 1\) \* 0.5 | bc | xargs sleep
 {cmd}
 """)
 
@@ -944,7 +943,7 @@ class ClusterView(object):
 
         while 1:
             try:
-                if extra_params.get("run_local"):
+                if extra_params.get("run_local") or queue == "run_local":
                     _start_local(num_jobs, self.profile, self.cluster_id)
                 else:
                     _start(scheduler, self.profile, queue, num_jobs, cores_per_job, self.cluster_id, extra_params)
