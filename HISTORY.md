@@ -1,5 +1,9 @@
 ## 0.5.2 (in progress)
 - Fix passing optional resources to PBSPro. Thanks to Endre Sebestyén.
+- Spin up individual engines instead of job arrays for PBSPro clusters. Thanks to 
+  Thanks to Endre Sebestyen (@razZ0r), Francesco Ferrari and Tiziana Castrignanò
+  for raising the issue, providing an account with access to PBSPro on the Cineca
+  cluster and testing that the fix works.
 
 ## 0.5.1 (January 25, 2015)
 - Add support for UGE (an open-source fork of SGE) Thanks to Andrew Oler.
