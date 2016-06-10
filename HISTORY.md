@@ -1,3 +1,7 @@
+## 0.5.3 (in progress)
+- Emit warning message instead of failing when we try to shut down a cluster and it is already shut down. Thanks to 
+  Gabriel F. Berriz (@gberriz) for raising the issue.
+
 ## 0.5.2 (8 June 2016)
 
 - Pin requirements to use IPython < 5.0 until we migrate to new release.

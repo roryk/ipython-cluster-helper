@@ -895,8 +895,11 @@ def _stop(profile, cluster_id):
     args = cluster_cmd_argv + \
            ["stop", "--cluster-id=%s" % cluster_id]
     args += _get_profile_args(profile)
-    subprocess.check_call(args)
-
+    try:
+        subprocess.check_call(args)
+    except CalledProcessError:
+        print('Manual shutdown of cluster failed, often this is because the '
+              'cluster was already shutdown.')
 
 class ClusterView(object):
     """Provide a view on an ipython cluster for processing.
