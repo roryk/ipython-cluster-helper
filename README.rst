@@ -14,7 +14,9 @@ Example
 
 Lets say you wrote a program that takes several files in as arguments
 and performs some kind of long running computation on them. Your
-original implementation used a loop but it was way too slow::
+original implementation used a loop but it was way too slow
+
+.. code-block:: python
 
     from yourmodule import long_running_function
     import sys
@@ -24,7 +26,9 @@ original implementation used a loop but it was way too slow::
             long_running_function(f)
 
 If you have access to one of the supported schedulers you can easily
-parallelize your program across 5 nodes with ipython-cluster-helper::
+parallelize your program across 5 nodes with ipython-cluster-helper
+
+.. code-block:: python
 
     from cluster_helper.cluster import cluster_view
     from yourmodule import long_running_function
@@ -37,7 +41,9 @@ parallelize your program across 5 nodes with ipython-cluster-helper::
 That's it! No setup required.
 
 To run a local cluster for testing purposes pass `run_local` as an extra
-parameter to the cluster_view function::
+parameter to the cluster_view function
+
+.. code-block:: python
 
     with cluster_view(scheduler=None, queue=None, num_jobs=5,
                       extra_params={"run_local": True}) as view:
