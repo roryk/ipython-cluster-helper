@@ -29,9 +29,9 @@ import traitlets
 from traitlets import (List, Unicode, CRegExp)
 from IPython.core.profiledir import ProfileDir
 
-from slurm import get_slurm_attributes
-import utils
-import lsf
+from .slurm import get_slurm_attributes
+from . import utils
+from . import lsf
 
 DEFAULT_MEM_PER_CPU = 1000  # Mb
 
@@ -141,7 +141,7 @@ def get_engine_commands(context, n):
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on LSF.
     """
-    batch_file_name = Unicode(unicode("lsf_engine" + str(uuid.uuid4())))
+    batch_file_name = Unicode("lsf_engine" + str(uuid.uuid4()))
     cores = traitlets.Integer(1, config=True)
     numengines = traitlets.Integer(1, config=True)
     mem = traitlets.Unicode("", config=True)
@@ -192,7 +192,7 @@ def _format_lsf_resources(resources):
     return resource_str
 
 class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
-    batch_file_name = Unicode(unicode("lsf_controller" + str(uuid.uuid4())))
+    batch_file_name = Unicode("lsf_controller" + str(uuid.uuid4()))
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     resources = traitlets.Unicode("", config=True)
@@ -231,7 +231,7 @@ def _local_environment_exports():
 class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
     """Custom launcher handling heterogeneous clusters on SGE.
     """
-    batch_file_name = Unicode(unicode("sge_engine" + str(uuid.uuid4())))
+    batch_file_name = Unicode("sge_engine" + str(uuid.uuid4()))
     cores = traitlets.Integer(1, config=True)
     numengines = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
@@ -280,7 +280,7 @@ class BcbioSGEEngineSetLauncher(launcher.SGEEngineSetLauncher):
         return super(BcbioSGEEngineSetLauncher, self).start(n)
 
 class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
-    batch_file_name = Unicode(unicode("sge_controller" + str(uuid.uuid4())))
+    batch_file_name = Unicode("sge_controller" + str(uuid.uuid4()))
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     pename = traitlets.Unicode("", config=True)
@@ -426,7 +426,7 @@ class SLURMLauncher(launcher.BatchSystemLauncher):
 class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     """Custom launcher handling heterogeneous clusters on SLURM
     """
-    batch_file_name = Unicode(unicode("SLURM_engine" + str(uuid.uuid4())))
+    batch_file_name = Unicode("SLURM_engine" + str(uuid.uuid4()))
     machines = traitlets.Integer(0, config=True)
     cores = traitlets.Integer(1, config=True)
     numengines = traitlets.Integer(1, config=True)
@@ -467,7 +467,7 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
         return super(BcbioSLURMEngineSetLauncher, self).start(n)
 
 class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
-    batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())))
+    batch_file_name = Unicode("SLURM_controller" + str(uuid.uuid4()))
     account = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
     timelimit = traitlets.Unicode("", config=True)
@@ -507,7 +507,7 @@ class BcbioOLDSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixi
     machines = traitlets.Integer(1, config=True)
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
-    batch_file_name = Unicode(unicode("SLURM_engines" + str(uuid.uuid4())),
+    batch_file_name = Unicode("SLURM_engines" + str(uuid.uuid4()),
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode(u"""#!/bin/sh
@@ -531,7 +531,7 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
     """Launch a controller using SLURM for versions < 2.6"""
     account = traitlets.Unicode("", config=True)
     timelimit = traitlets.Unicode("", config=True)
-    batch_file_name = Unicode(unicode("SLURM_controller" + str(uuid.uuid4())),
+    batch_file_name = Unicode("SLURM_controller" + str(uuid.uuid4()),
                               config=True, help="batch file name for the engine(s) job.")
 
     default_template = Unicode("""#!/bin/sh
@@ -594,7 +594,7 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
     tag = traitlets.Unicode("", config=True)
     numengines = traitlets.Integer(1, config=True)
     resources = traitlets.Unicode("", config=True)
-    batch_file_name = Unicode(unicode("torque_engines" + str(uuid.uuid4())),
+    batch_file_name = Unicode("torque_engines" + str(uuid.uuid4()),
                               config=True, help="batch file name for the engine(s) job.")
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
@@ -626,7 +626,7 @@ cd $PBS_O_WORKDIR
 
 class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using Torque."""
-    batch_file_name = Unicode(unicode("torque_controller" + str(uuid.uuid4())),
+    batch_file_name = Unicode("torque_controller" + str(uuid.uuid4()),
                               config=True, help="batch file name for the engine(s) job.")
     cores = traitlets.Integer(1, config=True)
     tag = traitlets.Unicode("", config=True)
@@ -673,7 +673,7 @@ class PBSPROLauncher(launcher.PBSLauncher):
 class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch Engines using PBSPro"""
 
-    batch_file_name = Unicode(unicode('pbspro_engines' + str(uuid.uuid4())),
+    batch_file_name = Unicode('pbspro_engines' + str(uuid.uuid4()),
                               config=True,
                               help="batch file name for the engine(s) job.")
     tag = traitlets.Unicode("", config=True)
@@ -713,7 +713,7 @@ cd $PBS_O_WORKDIR
 class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin):
     """Launch a controller using PBSPro."""
 
-    batch_file_name = Unicode(unicode("pbspro_controller" + str(uuid.uuid4())),
+    batch_file_name = Unicode("pbspro_controller" + str(uuid.uuid4()),
                               config=True,
                               help="batch file name for the controller job.")
     tag = traitlets.Unicode("", config=True)

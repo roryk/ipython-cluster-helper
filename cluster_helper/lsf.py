@@ -2,7 +2,7 @@ import os
 import subprocess
 import fnmatch
 
-import utils
+from . import utils
 
 LSB_PARAMS_FILENAME = "lsb.params"
 LSF_CONF_FILENAME = "lsf.conf"
