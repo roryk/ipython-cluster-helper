@@ -80,6 +80,7 @@ Contributors
 * @mjdellwo
 * @matthias-k
 * Andrew Oler (@oleraj)
-
+* Alain Péteut (@peteut)
+* Matt De Both (@mdeboth)
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
