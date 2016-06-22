@@ -19,6 +19,7 @@ import time
 import re
 from distutils.version import LooseVersion
 import sys
+import six
 
 from ipyparallel import Client
 from ipyparallel.apps import launcher
@@ -780,7 +781,7 @@ def _scheduler_resources(scheduler, params, queue):
     specials = {}
     if not orig_resources:
         orig_resources = []
-    if isinstance(orig_resources, basestring):
+    if isinstance(orig_resources, six.string_types):
         orig_resources = orig_resources.split(";")
     resources = []
     for r in orig_resources:
