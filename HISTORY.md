@@ -1,12 +1,15 @@
 ## 0.5.3 (in progress)
-- Emit warning message instead of failing when we try to shut down a cluster and it is already shut down. Thanks to 
-  Gabriel F. Berriz (@gberriz) for raising the issue.
+- Emit warning message instead of failing when we try to shut down a cluster and
+  it is already shut down. Thanks to Gabriel F. Berriz (@gberriz) for raising
+  the issue.
+- Python 2/3 compatibility. Thanks to Alain Péteut (@peteut) and Matt De Both
+  (@mdeboth).
 
 ## 0.5.2 (8 June 2016)
 
 - Pin requirements to use IPython < 5.0 until we migrate to new release.
 - Fix passing optional resources to PBSPro. Thanks to Endre Sebestyén.
-- Spin up individual engines instead of job arrays for PBSPro clusters. Thanks to 
+- Spin up individual engines instead of job arrays for PBSPro clusters. Thanks to
   Thanks to Endre Sebestyen (@razZ0r), Francesco Ferrari and Tiziana Castrignanò
   for raising the issue, providing an account with access to PBSPro on the Cineca
   cluster and testing that the fix works.
