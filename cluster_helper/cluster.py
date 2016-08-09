@@ -25,7 +25,6 @@ from ipyparallel import Client
 from ipyparallel.apps import launcher
 from ipyparallel import error as iperror
 from IPython.paths import locate_profile, get_ipython_dir
-from ipykernel import pickleutil
 import traitlets
 from traitlets import (List, Unicode, CRegExp)
 from IPython.core.profiledir import ProfileDir
@@ -1062,7 +1061,7 @@ def cluster_view(scheduler, queue, num_jobs, cores_per_job=1, profile=None,
     """
     cluster_view = ClusterView(scheduler, queue, num_jobs, cores_per_job=cores_per_job,
                                profile=profile, start_wait=start_wait, extra_params=extra_params,
-                               retries=retries, direct=False,
+                               retries=retries, direct=direct,
                                wait_for_all_engines=wait_for_all_engines)
     try:
         yield cluster_view.view
