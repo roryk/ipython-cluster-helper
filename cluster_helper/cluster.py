@@ -220,9 +220,13 @@ def _local_environment_exports():
 
     Passes additional environmental variables not inherited by some schedulers.
     LD_LIBRARY_PATH filtered by '-V' on recent Grid Engine releases.
+    LD_PRELOAD filtered by SGE without an option to turn off:
+
+    https://github.com/gridengine/gridengine/blob/6a5407d56c85b39290ac2488fb6dec1a4404a974/source/libs/sgeobj/sge_var.c#L994
+    but used by tools like PetaGene (http://www.petagene.com/).
     """
     exports = []
-    for envname in ["LD_LIBRARY_PATH"]:
+    for envname in ["LD_LIBRARY_PATH", "LD_PRELOAD"]:
         envval = os.environ.get(envname)
         if envval:
             exports.append("export %s=%s" % (envname, envval))

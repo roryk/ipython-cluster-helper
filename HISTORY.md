@@ -1,9 +1,12 @@
-## 0.5.3 (in progress)
+## 0.5.3 (23 August 2016)
+
 - Emit warning message instead of failing when we try to shut down a cluster and
   it is already shut down. Thanks to Gabriel F. Berriz (@gberriz) for raising
   the issue.
 - Python 2/3 compatibility. Thanks to Alain Péteut (@peteut) and Matt De Both
   (@mdeboth).
+- Pass LD_PRELOAD to bcbio SGE worker jobs to enable compatibility with
+  PetaGene.
 
 ## 0.5.2 (8 June 2016)
 
