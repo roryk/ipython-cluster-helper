@@ -23,6 +23,7 @@ import six
 
 from ipyparallel import Client
 from ipyparallel.apps import launcher
+from ipyparallel.apps.launcher import LocalControllerLauncher
 from ipyparallel import error as iperror
 from IPython.paths import locate_profile, get_ipython_dir
 import traitlets
@@ -742,6 +743,15 @@ cd $PBS_O_WORKDIR
         self.resources = resources
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
+class BcbioLocalControllerLauncher(LocalControllerLauncher):
+    def find_args(self):
+        extra_params = ["--ip=*", "--log-to-file",
+                        "--profile-dir=%s" % self.profile_dir,
+                        "--cluster-id=%s" % self.cluster_id]
+        return controller_cmd_argv + controller_params + extra_params
+    def start(self):
+        return super(BcbioLocalControllerLauncher, self).start()
+
 def _prep_pbspro_resources(resources):
     """Prepare resources passed to pbspro from input parameters.
     """
@@ -847,34 +857,48 @@ def _start(scheduler, profile, queue, num_jobs, cores_per_job, cluster_id,
          "--log-to-file",
          "--debug",
          "--n=%s" % num_jobs,
-         "--%s.cores=%s" % (controller_class, specials.get("minconcores", 1)),
          "--%s.cores=%s" % (engine_class, cores_per_job),
-         "--%s.resources='%s'" % (controller_class, resources),
          "--%s.resources='%s'" % (engine_class, resources),
          "--%s.mem='%s'" % (engine_class, extra_params.get("mem", "")),
-         "--%s.mem='%s'" % (controller_class, specials.get("conmem", "")),
          "--%s.tag='%s'" % (engine_class, extra_params.get("tag", "")),
-         "--%s.tag='%s'" % (controller_class, extra_params.get("tag", "")),
-         "--IPClusterStart.controller_launcher_class=%s.%s" % (ns, controller_class),
          "--IPClusterStart.engine_launcher_class=%s.%s" % (ns, engine_class),
          "--%sLauncher.queue='%s'" % (scheduler, queue),
          "--cluster-id=%s" % (cluster_id)
          ]
+    # set controller options
+    local_controller = extra_params.get("local_controller")
+    if local_controller:
+        controller_class = "BcbioLocalControllerLauncher"
+        args += ["--IPClusterStart.controller_launcher_class=%s.%s" %
+                 (ns, controller_class)]
+    else:
+        args += [
+            "--%s.mem='%s'" % (controller_class, specials.get("conmem", "")),
+            "--%s.tag='%s'" % (engine_class, extra_params.get("tag", "")),
+            "--%s.tag='%s'" % (controller_class, extra_params.get("tag", "")),
+            "--%s.cores=%s" % (controller_class, specials.get("minconcores", 1)),
+            "--%s.resources='%s'" % (controller_class, resources),
+            "--IPClusterStart.controller_launcher_class=%s.%s" %
+            (ns, controller_class)]
+
     args += _get_profile_args(profile)
     if mincores > 1 and mincores > cores_per_job:
         args += ["--%s.numengines=%s" % (engine_class, mincores)]
     if specials.get("pename"):
-        args += ["--%s.pename=%s" % (controller_class, specials["pename"])]
+        if not local_controller:
+            args += ["--%s.pename=%s" % (controller_class, specials["pename"])]
         args += ["--%s.pename=%s" % (engine_class, specials["pename"])]
     if specials.get("memtype"):
         args += ["--%s.memtype=%s" % (engine_class, specials["memtype"])]
     if slurm_atrs:
         args += ["--%s.machines=%s" % (engine_class, slurm_atrs.get("machines", "0"))]
         args += ["--%s.timelimit='%s'" % (engine_class, slurm_atrs["timelimit"])]
-        args += ["--%s.timelimit='%s'" % (controller_class, slurm_atrs["timelimit"])]
+        if not local_controller:
+            args += ["--%s.timelimit='%s'" % (controller_class, slurm_atrs["timelimit"])]
         if slurm_atrs.get("account"):
             args += ["--%s.account=%s" % (engine_class, slurm_atrs["account"])]
-            args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
+            if not local_controller:
+                args += ["--%s.account=%s" % (controller_class, slurm_atrs["account"])]
     subprocess.check_call(args)
     return cluster_id
 
@@ -953,7 +977,8 @@ class ClusterView(object):
                 if extra_params.get("run_local") or queue == "run_local":
                     _start_local(num_jobs, self.profile, self.cluster_id)
                 else:
-                    _start(scheduler, self.profile, queue, num_jobs, cores_per_job, self.cluster_id, extra_params)
+                    _start(scheduler, self.profile, queue, num_jobs,
+                           cores_per_job, self.cluster_id, extra_params)
                 break
             except subprocess.CalledProcessError:
                 if num_tries > max_tries:

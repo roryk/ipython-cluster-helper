@@ -29,6 +29,8 @@ if __name__ == "__main__":
         help="scheduler to use (lsf, sge, torque, slurm, or pbs)")
     parser.add_argument("--queue", dest='queue', default="",
                         help="queue to use on scheduler.")
+    parser.add_argument("--local_controller", dest='local_controller', default=False,
+                        help="run controller locally", action="store_true")
     parser.add_argument("--num_jobs", dest='num_jobs', default=3,
                         type=int, help="number of jobs to run in parallel.")
     parser.add_argument("--cores_per_job", dest="cores_per_job", default=1,
@@ -48,7 +50,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.resources = {'resources': args.resources,
-                      'mem': args.mem}
+                      'mem': args.mem,
+                      'local_controller': args.local_controller}
     if args.local:
         args.resources["run_local"] = True
 
