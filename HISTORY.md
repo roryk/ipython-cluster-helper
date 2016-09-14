@@ -9,6 +9,8 @@
   the issue.
 - Python 2/3 compatibility. Thanks to Alain Péteut (@peteut) and Matt De Both
   (@mdeboth).
+- Pass LD_PRELOAD to bcbio SGE worker jobs to enable compatibility with
+  PetaGene.
 
 ## 0.5.2 (8 June 2016)
 
