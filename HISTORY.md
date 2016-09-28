@@ -1,6 +1,8 @@
 ## 0.5.4a (in progress)
 - Add option to run controller locally. Thanks to Brent Pederson (@brentp) and
-  Sven-Eric Schelhorn (@schelhorn). 
+  Sven-Eric Schelhorn (@schelhorn).
+- Fix for Python 3 compatibility in setup.py. Thanks to Amar Chaudhari
+  (@Amar-Chaudhari).
 
 ## 0.5.3 (23 August 2016)
 
