@@ -735,7 +735,6 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     default_template = Unicode("""#!/bin/sh
 #PBS -V
 #PBS -N {tag}-c
-#PBS -l select=1:ncpus={cores}
 {resources}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
@@ -745,9 +744,9 @@ cd $PBS_O_WORKDIR
     def start(self):
         """Start the controller by profile or profile_dir."""
         if _pbspro_noselect(self.resources):
-            cpuresource = "#PBS -l ncpus={cores}"
+            cpuresource = "#PBS -l ncpus=%d" % self.cores
         else:
-            cpuresource = "#PBS -l select=1:ncpus={cores}"
+            cpuresource = "#PBS -l select=1:ncpus=%d" % self.cores
         pbsproresources = _prep_pbspro_resources(self.resources)
         pbsproresources.append(cpuresource)
         resources = "\n".join(pbsproresources)
@@ -783,6 +782,8 @@ def _prep_pbspro_resources(resources):
         elif r.strip():
             if k.lower() == "walltime":
                 has_walltime = True
+            if r.strip() == "noselect":
+                continue
             out.append("#PBS -l %s" % r.strip())
     if not has_walltime:
         out.append("#PBS -l walltime=239:00:00")
@@ -793,7 +794,7 @@ def _pbspro_noselect(resources):
     handles PBSPro setups which don't support the select statement (NCI)
     """
     for r in resources.split(";"):
-        if r == "noselect":
+        if r.strip() == "noselect":
             return True
     return False
 
