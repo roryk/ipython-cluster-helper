@@ -925,7 +925,7 @@ def _stop(profile, cluster_id):
     args += _get_profile_args(profile)
     try:
         subprocess.check_call(args)
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         print('Manual shutdown of cluster failed, often this is because the '
               'cluster was already shutdown.')
 
