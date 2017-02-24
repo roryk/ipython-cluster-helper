@@ -1,4 +1,7 @@
-## 0.5.4a (in progress)
+## 0.5.4 (24 February 2017)
+- Ensure /bin/sh used for Torque/PBSPro submissions to prevent overwriting
+  environment from bashrc. Pass LD_* exports, which are also filtered by Torque.
+  Thanks to Andrey Tovchigrechko.
 - Add option to run controller locally. Thanks to Brent Pederson (@brentp) and
   Sven-Eric Schelhorn (@schelhorn).
 - Fix for Python 3 compatibility in setup.py. Thanks to Amar Chaudhari

@@ -9,7 +9,7 @@ reqs = [str(ir.req) for ir in install_reqs]
 
 
 setup(name="ipython-cluster-helper",
-      version="0.5.4a",
+      version="0.5.4",
       author="Rory Kirchner",
       author_email="rory.kirchner@gmail.com",
       description="Simplify IPython cluster start up and use for "
@@ -19,4 +19,4 @@ setup(name="ipython-cluster-helper",
       zip_safe=False,
       url="https://github.com/roryk/ipython-cluster-helper",
       packages=find_packages(),
-	  install_requires=reqs)
+      install_requires=reqs)

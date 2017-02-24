@@ -603,12 +603,14 @@ class BcbioTORQUEEngineSetLauncher(TORQUELauncher, launcher.BatchClusterAppMixin
                               config=True, help="batch file name for the engine(s) job.")
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
+#PBS -S /bin/sh
 #PBS -j oe
 #PBS -N {tag}-e
 #PBS -t 1-{n}
 #PBS -l nodes=1:ppn={cores}
 {mem}
 {resources}
+{exports}
 cd $PBS_O_WORKDIR
 {cmd}
 """)
@@ -625,6 +627,7 @@ cd $PBS_O_WORKDIR
             self.context["tag"] = self.tag if self.tag else "bcbio"
             self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
             self.context["cmd"] = get_engine_commands(self.context, self.numengines)
+            self.context["exports"] = _local_environment_exports()
             return super(BcbioTORQUEEngineSetLauncher, self).start(n)
         except:
             self.log.exception("Engine start failed")
@@ -638,10 +641,12 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
+#PBS -S /bin/sh
 #PBS -N {tag}-c
 #PBS -j oe
 #PBS -l nodes=1:ppn={cores}
 {resources}
+{exports}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -653,6 +658,7 @@ cd $PBS_O_WORKDIR
             self.context["cores"] = self.cores
             self.context["tag"] = self.tag if self.tag else "bcbio"
             self.context["resources"] = "\n".join(_prep_torque_resources(self.resources))
+            self.context["exports"] = _local_environment_exports()
             return super(BcbioTORQUEControllerLauncher, self).start(1)
         except:
             self.log.exception("Controller start failed")
@@ -688,8 +694,10 @@ class BcbioPBSPROEngineSetLauncher(PBSPROLauncher, launcher.BatchClusterAppMixin
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode(u"""#!/bin/sh
 #PBS -V
+#PBS -S /bin/sh
 #PBS -N {tag}-e
 {resources}
+{exports}
 cd $PBS_O_WORKDIR
 {cmd}
 """)
@@ -703,9 +711,9 @@ cd $PBS_O_WORKDIR
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
         self.context["cmd"] = get_engine_commands(self.context, self.numengines)
+        self.context["exports"] = _local_environment_exports()
         self.write_batch_script(n)
         job_ids = []
-        submit_cmd = "qsub < %s" % self.batch_file_name
         for i in range(n):
             output = subprocess.check_output("qsub < %s" % self.batch_file_name,
                                              shell=True)
@@ -726,9 +734,11 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
+#PBS -S /bin/sh
 #PBS -N {tag}-c
 #PBS -l select=1:ncpus={cores}
 {resources}
+{exports}
 cd $PBS_O_WORKDIR
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
@@ -740,6 +750,7 @@ cd $PBS_O_WORKDIR
         self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
+        self.context["exports"] = _local_environment_exports()
         self.resources = resources
         return super(BcbioPBSPROControllerLauncher, self).start(1)
 
