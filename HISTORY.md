@@ -1,3 +1,7 @@
+## 0.5.5 (current)
+- Set minimum PBSPro controller memory usage to 1GB. Thanks to Guus van Dalum
+  @vandalum.
+
 ## 0.5.4 (24 February 2017)
 - Ensure /bin/sh used for Torque/PBSPro submissions to prevent overwriting
   environment from bashrc. Pass LD_* exports, which are also filtered by Torque.
