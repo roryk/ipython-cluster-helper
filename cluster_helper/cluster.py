@@ -736,7 +736,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
 #PBS -V
 #PBS -S /bin/sh
 #PBS -N {tag}-c
-#PBS -l select=1:ncpus={cores}
+#PBS -l select=1:ncpus={cores}:mem=1gb
 {resources}
 {exports}
 cd $PBS_O_WORKDIR
