@@ -1,4 +1,6 @@
 ## 0.5.5 (current)
+
+- Provide separate logging of SLURM engine job arrays.
 - Set minimum PBSPro controller memory usage to 1GB. Thanks to Guus van Dalum
   @vandalum.
 

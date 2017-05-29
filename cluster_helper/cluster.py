@@ -481,8 +481,8 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
     resources = traitlets.Unicode("", config=True)
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -J {tag}-c
-#SBATCH -o bcbio-ipcontroller.out.%%j
-#SBATCH -e bcbio-ipcontroller.err.%%j
+#SBATCH -o bcbio-ipcontroller.out.%%A_%%a
+#SBATCH -e bcbio-ipcontroller.err.%%A_%%a
 #SBATCH -t {timelimit}
 #SBATCH --cpus-per-task={cores}
 {account}
