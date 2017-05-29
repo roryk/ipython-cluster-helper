@@ -72,6 +72,7 @@ class VMFixIPControllerApp(IPControllerApp):
         priority_ifaces = ("eth",)  # Interfaces we prefer to get IPs from
 
         # list of iface names, 'lo0', 'eth0', etc.
+        # We get addresses and order based on priorty, with more preferred last
         for iface in netifaces.interfaces():
             if iface not in vm_ifaces:
                 # list of ipv4 addrinfo dicts
@@ -82,9 +83,12 @@ class VMFixIPControllerApp(IPControllerApp):
                         continue
                     if not (iface.startswith('lo') or addr.startswith('127.')):
                         if iface.startswith(priority_ifaces):
-                            priority_ips.append(addr)
+                            priority_ips.append((iface, addr))
                         else:
                             standard_ips.append(addr)
+        # Prefer earlier interfaces (eth0) over later (eth1)
+        priority_ips.sort(reverse=True)
+        priority_ips = [xs[1] for xs in priority_ips]
         public_ips = uniq_stable(standard_ips + priority_ips)
         return public_ips[-1]
 

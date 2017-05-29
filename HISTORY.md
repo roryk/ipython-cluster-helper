@@ -1,6 +1,8 @@
-## 0.5.5 (current)
+## 0.5.5 (29 May 2017)
 
-- Provide separate logging of SLURM engine job arrays.
+- Try to better resolve multiple local addresses for controllers. Prioritize
+  earlier addresses (eth0) over later (eth1) if all are valid. Thanks to Luca Beltrame.
+- Provide separate logging of SLURM engine job arrays. Thanks to Oliver Hofmann.
 - Set minimum PBSPro controller memory usage to 1GB. Thanks to Guus van Dalum
   @vandalum.
 
