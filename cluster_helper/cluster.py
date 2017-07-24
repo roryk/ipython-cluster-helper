@@ -707,9 +707,17 @@ cd $PBS_O_WORKDIR
 """)
 
     def start(self, n):
-        resources = "#PBS -l select=1:ncpus=%d" % (self.cores * self.numengines)
+        tcores = (self.cores * self.numengines)
+        tmem = int(float(self.mem) * 1024 * self.numengines)
+        if _pbspro_noselect(self.resources):
+            resources = "#PBS -l ncpus=%d\n" % tcores
+        else:
+            resources = "#PBS -l select=1:ncpus=%d" % tcores
         if self.mem:
-            resources += ":mem=%smb" % int(float(self.mem) * 1024 * self.numengines)
+            if _pbspro_noselect(self.resources):
+                resources += "#PBS -l mem=%smb" % tmem
+            else:
+                resources += ":mem=%smb" % tmem
         resources = "\n".join([resources] + _prep_pbspro_resources(self.resources))
         self.context["resources"] = resources
         self.context["cores"] = self.cores
@@ -740,7 +748,6 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
 #PBS -V
 #PBS -S /bin/sh
 #PBS -N {tag}-c
-#PBS -l select=1:ncpus={cores}:mem=1gb
 {resources}
 {exports}
 cd $PBS_O_WORKDIR
@@ -750,7 +757,13 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
-        resources = "\n".join(_prep_pbspro_resources(self.resources))
+        if _pbspro_noselect(self.resources):
+            cpuresource = "#PBS -l ncpus=%d" % self.cores
+        else:
+            cpuresource = "#PBS -l select=1:ncpus=%d" % self.cores
+        pbsproresources = _prep_pbspro_resources(self.resources)
+        pbsproresources.append(cpuresource)
+        resources = "\n".join(pbsproresources)
         self.context["resources"] = resources
         self.context["cores"] = self.cores
         self.context["tag"] = self.tag if self.tag else "bcbio"
@@ -784,11 +797,21 @@ def _prep_pbspro_resources(resources):
         elif r.strip():
             if k.lower() == "walltime":
                 has_walltime = True
+            if r.strip() == "noselect":
+                continue
             out.append("#PBS -l %s" % r.strip())
     if not has_walltime:
         out.append("#PBS -l walltime=239:00:00")
     return out
 
+def _pbspro_noselect(resources):
+    """
+    handles PBSPro setups which don't support the select statement (NCI)
+    """
+    for r in resources.split(";"):
+        if r.strip() == "noselect":
+            return True
+    return False
 
 def _get_profile_args(profile):
     if os.path.isdir(profile) and os.path.isabs(profile):
