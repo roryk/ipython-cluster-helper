@@ -51,6 +51,7 @@ controller_params = ["--nodb", "--hwm=1", "--scheme=leastload",
 # Can go away when we merge changes into upstream IPython
 
 import json
+import socket
 import stat
 import netifaces
 from ipyparallel.apps.ipcontrollerapp import IPControllerApp
@@ -66,6 +67,11 @@ class VMFixIPControllerApp(IPControllerApp):
         Prioritizes a set of common interfaces to try and make better decisions
         when choosing from multiple choices.
         """
+        # First try to get address from domain name
+        fqdn_ip = socket.gethostbyname(socket.getfqdn())
+        if fqdn_ip and not fqdn_ip.startswith("127."):
+            return fqdn_ip
+        # otherwise retrieve from interfaces
         standard_ips = []
         priority_ips = []
         vm_ifaces = set(["docker0", "virbr0", "lxcbr0"])  # VM/container interfaces we do not want

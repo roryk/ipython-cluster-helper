@@ -1,3 +1,10 @@
+## 0.5.6 (2 Aug 2017)
+
+- Additional work to better resolve local IP addresses, first trying to pick
+  an IP from the fully qualified domain name if available. Thanks to Linh Vu.
+- Support PBSPro systems without select statement enabled. Thanks to Roman Valls
+  Guimerà.
+
 ## 0.5.5 (29 May 2017)
 
 - Try to better resolve multiple local addresses for controllers. Prioritize
