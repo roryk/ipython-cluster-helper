@@ -1187,8 +1187,9 @@ def _slurm_is_old():
     return LooseVersion(_slurm_version()) < LooseVersion("2.6")
 
 def _slurm_version():
-    version_line = subprocess.Popen("sinfo -V", shell=True,
-                                    stdout=subprocess.PIPE).communicate()[0]
+    version_line = subprocess.check_output("sinfo -V", shell=True)
+    if six.PY3:
+        version_line = version_line.decode('ascii', 'ignore')
     parts = version_line.split()
     if len(parts) > 0:
         return version_line.split()[1]
