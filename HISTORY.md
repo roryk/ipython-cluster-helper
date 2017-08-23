@@ -4,6 +4,8 @@
   an IP from the fully qualified domain name if available. Thanks to Linh Vu.
 - Support PBSPro systems without select statement enabled. Thanks to Roman Valls
   Guimerà.
+- Enable python3 support for Slurm. Thanks to Vlad Saveliev.
+- Enable support for ipython 5.
 
 ## 0.5.5 (29 May 2017)
 
