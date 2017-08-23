@@ -1,4 +1,5 @@
 import subprocess
+import six
 
 DEFAULT_TIME = "1-00:00:00"
 
@@ -33,28 +34,21 @@ class SlurmTime(object):
             else:
                 self.minutes = int(time_tokens[0])
 
+    # For Python 3
+    def __lt__(self, slurmtime):
+        for k in ['days', 'hours', 'minutes', 'seconds']:
+            v1 = getattr(self, k)
+            v2 = getattr(slurmtime, k)
+            if v1 != v2:
+                return v1 < v2
+        return False
+
+    # For Python 2
     def __cmp__(self, slurmtime):
-        cdays = slurmtime.days
-        chours = slurmtime.hours
-        cminutes = slurmtime.minutes
-        cseconds = slurmtime.seconds
-        if self.days < cdays:
+        if self < slurmtime:
             return -1
-        if self.days > cdays:
+        else:
             return 1
-        if self.hours < chours:
-            return -1
-        if self.hours > cdays:
-            return 1
-        if self.minutes < cminutes:
-            return -1
-        if self.minutes > cminutes:
-            return 1
-        if self.seconds < cseconds:
-            return -1
-        if self.seconds > cseconds:
-            return 1
-        return 0
 
     def __repr__(self):
         return("%02d-%02d:%02d:%02d" % (self.days, self.hours, self.minutes, self.seconds))
@@ -64,7 +58,9 @@ def get_accounts(user):
     get all accounts a user can use to submit a job
     """
     cmd = "sshare -p --noheader"
-    out, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+    out = subprocess.check_output(cmd, shell=True)
+    if six.PY3: 
+        out = out.decode('ascii', 'ignore')
     accounts = []
     has_accounts = False
     for line in out.splitlines():
@@ -86,18 +82,23 @@ def get_accounts(user):
     return accounts
 
 def get_user():
-    out, err = subprocess.Popen("whoami", shell=True,
-                                stdout=subprocess.PIPE).communicate()
+    out = subprocess.check_output("whoami", shell=True)
+    if six.PY3: 
+        out = out.decode('ascii', 'ignore')
     return out.strip()
 
 def accounts_with_access(queue):
     cmd = "sinfo --noheader -p {0} -o %g".format(queue)
-    out, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+    out = subprocess.check_output(cmd, shell=True)
+    if six.PY3: 
+        out = out.decode('ascii', 'ignore')
     return set([x.strip() for x in out.split(",")])
 
 def get_max_timelimit(queue):
     cmd = "sinfo --noheader -p {0}".format(queue)
-    out, err = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()
+    out = subprocess.check_output(cmd, shell=True)
+    if six.PY3: 
+        out = out.decode('ascii', 'ignore')
     max_limit = out.split()[2].strip()
     time_limit = None if max_limit == "inifinite" else max_limit
     return max_limit
