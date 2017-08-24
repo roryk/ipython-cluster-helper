@@ -82,5 +82,6 @@ Contributors
 * Andrew Oler (@oleraj)
 * Alain Péteut (@peteut)
 * Matt De Both (@mdeboth)
+* Vlad Saveliev (@vladsaveliev)
 
 .. _bcbio-nextgen: https://github.com/chapmanb/bcbio-nextgen
