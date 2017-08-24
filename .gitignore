@@ -3,3 +3,6 @@ build
 *.pyc
 dist
 *.egg-info
+.DS_Store
+.idea/
+__pycache__/
