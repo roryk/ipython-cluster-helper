@@ -69,14 +69,12 @@ if __name__ == "__main__":
         print("This long computation that waits for 5 seconds before "
               "returning takes a while to run serially..")
         start_time = time.time()
-        results = map(long_computation, range(20), range(20, 40),
-                      range(40, 60))
+        results = list(map(long_computation, range(20), range(20, 40), range(40, 60)))
         print(results)
         print("That took {} seconds.".format(time.time() - start_time))
         print("Running it in parallel goes much faster...")
         start_time = time.time()
-        results = view.map(long_computation, range(20), range(20, 40),
-                           range(40, 60))
+        results = list(view.map(long_computation, range(20), range(20, 40), range(40, 60)))
         print(results)
         print("That took {} seconds.".format(time.time() - start_time))
 
