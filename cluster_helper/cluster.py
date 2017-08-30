@@ -347,11 +347,11 @@ def _find_parallel_environment(queue):
     queue = base_queue + ".q"
 
     available_pes = []
-    for name in subprocess.check_output(["qconf", "-spl"]).strip().split():
+    for name in subprocess.check_output(["qconf", "-spl"]).decode().strip().split():
         if name:
-            for line in subprocess.check_output(["qconf", "-sp", name]).split("\n"):
+            for line in subprocess.check_output(["qconf", "-sp", name]).decode().split("\n"):
                 if _has_parallel_environment(line):
-                    if (_queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue)):
+                    if _queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue):
                         available_pes.append(name)
     if len(available_pes) == 0:
         raise ValueError("Could not find an SGE environment configured for parallel execution. "
@@ -407,7 +407,7 @@ def _queue_can_access_pe(pe_name, queue):
     """Check if a queue has access to a specific parallel environment, using qconf.
     """
     try:
-        queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]))
+        queue_config = _parseSGEConf(subprocess.check_output(["qconf", "-sq", queue]).decode())
     except:
         return False
     for test_pe_name in re.split('\W+|,', queue_config["pe_list"]):
