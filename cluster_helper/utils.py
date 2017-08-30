@@ -9,7 +9,7 @@ def convert_mb(kb, unit):
              "GB": 1,
              "TB": 2}
     assert unit in UNITS, ("%s not a valid unit, valid units are %s."
-                           % (unit, UNITS.keys()))
+                           % (unit, list(UNITS.keys())))
     return int(float(kb) / float(math.pow(1024, UNITS[unit])))
 
 def safe_makedir(dname):
