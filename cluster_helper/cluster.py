@@ -453,8 +453,8 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
     default_template = traitlets.Unicode("""#!/bin/sh
 #SBATCH -p {queue}
 #SBATCH -J {tag}-e[1-{n}]
-#SBATCH -o bcbio-ipengine.out.%%j
-#SBATCH -e bcbio-ipengine.err.%%j
+#SBATCH -o bcbio-ipengine.out.%A_%a
+#SBATCH -e bcbio-ipengine.err.%A_%a
 #SBATCH --cpus-per-task={cores}
 #SBATCH --array=1-{n}
 #SBATCH -t {timelimit}

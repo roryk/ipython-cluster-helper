@@ -1,3 +1,7 @@
+## 0.5.7 (in progress)
+- Fix for SLURM engine output files not having the proper job IDs.
+- Additional fixes for python3 support.
+
 ## 0.5.6 (2 Aug 2017)
 
 - Additional work to better resolve local IP addresses, first trying to pick
