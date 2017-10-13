@@ -458,24 +458,21 @@ class BcbioSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixin):
 #SBATCH --cpus-per-task={cores}
 #SBATCH --array=1-{n}
 #SBATCH -t {timelimit}
-{account}
-{machines}
-{mem}
-{resources}
+{account}{machines}{mem}{resources}
 {cmd}
 """)
 
     def start(self, n):
         self.context["cores"] = self.cores * self.numengines
         if self.mem:
-            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0 * self.numengines)
+            self.context["mem"] = "#SBATCH --mem=%s\n" % int(float(self.mem) * 1024.0 * self.numengines)
         else:
-            self.context["mem"] = "#SBATCH --mem=%d" % int(DEFAULT_MEM_PER_CPU * self.cores * self.numengines)
+            self.context["mem"] = "#SBATCH --mem=%d\n" % int(DEFAULT_MEM_PER_CPU * self.cores * self.numengines)
         self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["machines"] = ("#SBATCH %s" % (self.machines) if int(self.machines) > 0 else "")
-        self.context["account"] = ("#SBATCH -A %s" % self.account if self.account else "")
+        self.context["machines"] = ("#SBATCH %s\n" % (self.machines) if int(self.machines) > 0 else "")
+        self.context["account"] = ("#SBATCH -A %s\n" % self.account if self.account else "")
         self.context["timelimit"] = self.timelimit
-        self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
+        self.context["resources"] = "\n".join(["#SBATCH --%s\n" % r.strip()
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
         self.context["cmd"] = get_engine_commands(self.context, self.numengines)
@@ -495,9 +492,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -e bcbio-ipcontroller.err.%%A_%%a
 #SBATCH -t {timelimit}
 #SBATCH --cpus-per-task={cores}
-{account}
-{mem}
-{resources}
+{account}{mem}{resources}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -506,12 +501,12 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
         self.context["timelimit"] = self.timelimit
         self.context["cores"] = self.cores
         if self.mem:
-            self.context["mem"] = "#SBATCH --mem=%s" % int(float(self.mem) * 1024.0)
+            self.context["mem"] = "#SBATCH --mem=%s\n" % int(float(self.mem) * 1024.0)
         else:
-            self.context["mem"] = "#SBATCH --mem=%d" % (4 * DEFAULT_MEM_PER_CPU)
+            self.context["mem"] = "#SBATCH --mem=%d\n" % (4 * DEFAULT_MEM_PER_CPU)
         self.context["tag"] = self.tag if self.tag else "bcbio"
-        self.context["account"] = ("#SBATCH -A %s" % self.account if self.account else "")
-        self.context["resources"] = "\n".join(["#SBATCH --%s" % r.strip()
+        self.context["account"] = ("#SBATCH -A %s\n" % self.account if self.account else "")
+        self.context["resources"] = "\n".join(["#SBATCH --%s\n" % r.strip()
                                                for r in str(self.resources).split(";")
                                                if r.strip()])
         return super(BcbioSLURMControllerLauncher, self).start(1)
