@@ -1,4 +1,10 @@
-## 0.5.7 (in progress)
+## 0.5.8 (18 Oct 2017)
+
+- Fix SLURM resource specifications to avoid missing directives in the case of
+  empty lines in specifications.
+
+## 0.5.7 (11 Oct 2017)
+
 - Fix for SLURM engine output files not having the proper job IDs.
 - Additional fixes for python3 support.
 
