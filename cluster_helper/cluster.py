@@ -744,6 +744,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
                               help="batch file name for the controller job.")
     tag = traitlets.Unicode("", config=True)
     cores = traitlets.Integer(1, config=True)
+    mem = traitlets.Unicode("", config=True)
     resources = traitlets.Unicode("", config=True)
     default_template = Unicode("""#!/bin/sh
 #PBS -V
@@ -758,11 +759,14 @@ cd $PBS_O_WORKDIR
 
     def start(self):
         """Start the controller by profile or profile_dir."""
+        pbsproresources = _prep_pbspro_resources(self.resources)
+        tmem = int(float(self.mem) * 1020.-1) if self.mem else (4 * DEFAULT_MEM_PER_CPU)
         if _pbspro_noselect(self.resources):
             cpuresource = "#PBS -l ncpus=%d" % self.cores
+            pbsproresources.append("#PBS -l mem=%smb" % tmem)
         else:
             cpuresource = "#PBS -l select=1:ncpus=%d" % self.cores
-        pbsproresources = _prep_pbspro_resources(self.resources)
+            cpuresource += ":mem=%smb" % tmem
         pbsproresources.append(cpuresource)
         resources = "\n".join(pbsproresources)
         self.context["resources"] = resources

@@ -1,3 +1,8 @@
+## 0.5.9 (16 Nov 2017)
+
+- PBSPro: Pass memory default to controller and make configurable with `conmem`,
+  duplicating SLURM functionality. Thanks to Oliver Hofmann.
+
 ## 0.5.8 (18 Oct 2017)
 
 - Fix SLURM resource specifications to avoid missing directives in the case of
