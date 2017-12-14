@@ -1022,7 +1022,7 @@ class ClusterView(object):
         self.cluster_id = str(uuid.uuid4())
         url_file = get_url_file(self.profile, self.cluster_id)
 
-        if os.path.isdir(profile) and os.path.isabs(profile):
+        if profile and os.path.isdir(profile) and os.path.isabs(profile):
             os.environ["IPYTHONDIR"] = profile
         while 1:
             try:
