@@ -1,3 +1,8 @@
+## 0.6.0 (14 Dec 2017)
+
+- Stop IPython parallel trying to setup .ipython in home directories during runs by
+  setting IPYTHONDIR. This avoids intermittent InvalidSignature errors.
+
 ## 0.5.9 (16 Nov 2017)
 
 - PBSPro: Pass memory default to controller and make configurable with `conmem`,

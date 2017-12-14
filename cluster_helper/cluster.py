@@ -146,7 +146,7 @@ def get_engine_commands(context, n):
     out = [engine_cmd_full.format(**context)]
     for _ in range(n - 1):
         out.insert(0, "(%s &) &&" % (engine_cmd_full.format(**context)))
-    return "\n".join(out)
+    return "export IPYTHONDIR={profile_dir}\n".format(**context) + "\n".join(out)
 
 # ## Platform LSF
 class BcbioLSFEngineSetLauncher(launcher.LSFEngineSetLauncher):
@@ -215,6 +215,7 @@ class BcbioLSFControllerLauncher(launcher.LSFControllerLauncher):
 #BSUB -n {cores}
 #BSUB -oo bcbio-ipcontroller.bsub.%%J
 {resources}
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
     """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
            ' '.join(controller_params)))
@@ -311,6 +312,7 @@ class BcbioSGEControllerLauncher(launcher.SGEControllerLauncher):
 {queue}
 {resources}
 {exports}
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -493,6 +495,7 @@ class BcbioSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMixin)
 #SBATCH -t {timelimit}
 #SBATCH --cpus-per-task={cores}
 {account}{mem}{resources}
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -525,6 +528,7 @@ class BcbioOLDSLURMEngineSetLauncher(SLURMLauncher, launcher.BatchClusterAppMixi
 #SBATCH --job-name ipengine
 #SBATCH -N {machines}
 #SBATCH -t {timelimit}
+export IPYTHONDIR={profile_dir}
 srun -N {machines} -n {n} %s %s --profile-dir="{profile_dir}" --cluster-id="{cluster_id}"
     """ % (' '.join(map(pipes.quote, engine_cmd_argv)),
            ' '.join(timeout_params)))
@@ -548,6 +552,7 @@ class BcbioOLDSLURMControllerLauncher(SLURMLauncher, launcher.BatchClusterAppMix
 #SBATCH -A {account}
 #SBATCH --job-name ipcontroller
 #SBATCH -t {timelimit}
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -653,6 +658,7 @@ class BcbioTORQUEControllerLauncher(TORQUELauncher, launcher.BatchClusterAppMixi
 {resources}
 {exports}
 cd $PBS_O_WORKDIR
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -753,6 +759,7 @@ class BcbioPBSPROControllerLauncher(PBSPROLauncher, launcher.BatchClusterAppMixi
 {resources}
 {exports}
 cd $PBS_O_WORKDIR
+export IPYTHONDIR={profile_dir}
 %s --ip=* --log-to-file --profile-dir="{profile_dir}" --cluster-id="{cluster_id}" %s
 """ % (' '.join(map(pipes.quote, controller_cmd_argv)),
        ' '.join(controller_params)))
@@ -1015,6 +1022,8 @@ class ClusterView(object):
         self.cluster_id = str(uuid.uuid4())
         url_file = get_url_file(self.profile, self.cluster_id)
 
+        if os.path.isdir(profile) and os.path.isabs(profile):
+            os.environ["IPYTHONDIR"] = profile
         while 1:
             try:
                 if extra_params.get("run_local") or queue == "run_local":
