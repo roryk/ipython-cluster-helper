@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+import subprocess
+import sys
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
-from pip.download import PipSession
 from io import open
 
-install_reqs = parse_requirements("requirements.txt", session=PipSession())
-reqs = [str(ir.req) for ir in install_reqs]
+def parse_requirements(fn):
+    """ load requirements from a pip requirements file """
+    return [line for line in open(fn) if line and not line.startswith("#")]
 
+reqs = parse_requirements("requirements.txt")
 
 setup(name="ipython-cluster-helper",
       version="0.6.1",
