@@ -735,7 +735,7 @@ cd $PBS_O_WORKDIR
         job_ids = []
         for i in range(n):
             output = subprocess.check_output("qsub < %s" % self.batch_file_name,
-                                             shell=True)
+                                             shell=True, universal_newlines=True)
             job_ids.append(output.strip())
         job_id = ";".join(job_ids)
         self.notify_start(job_id)
