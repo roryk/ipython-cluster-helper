@@ -1,3 +1,6 @@
+## 0.6.2 (in progress)
+- Support pip10.
+
 ## 0.6.0 (14 Dec 2017)
 
 - Stop IPython parallel trying to setup .ipython in home directories during runs by
