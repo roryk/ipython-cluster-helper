@@ -345,7 +345,7 @@ def _prep_sge_resource(resource):
 def _find_parallel_environment(queue):
     """Find an SGE/OGE parallel environment for running multicore jobs in specified queue.
     """
-    base_queue = os.path.splitext(queue)[0]
+    base_queue, ext = os.path.splitext(queue)
     queue = base_queue + ".q"
 
     available_pes = []
@@ -353,7 +353,7 @@ def _find_parallel_environment(queue):
         if name:
             for line in subprocess.check_output(["qconf", "-sp", name]).decode().split("\n"):
                 if _has_parallel_environment(line):
-                    if _queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue):
+                    if _queue_can_access_pe(name, queue) or _queue_can_access_pe(name, base_queue) or _queue_can_access_pe(name, base_queue + ext):
                         available_pes.append(name)
     if len(available_pes) == 0:
         raise ValueError("Could not find an SGE environment configured for parallel execution. "
