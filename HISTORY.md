@@ -1,5 +1,8 @@
-## 0.6.2 (in progress)
+## 0.6.3 (in progress)
+
+## 0.6.2 
 - Support pip10.
+- Fix for SGE parallel environments with queues containing a . in the name.
 
 ## 0.6.0 (14 Dec 2017)
 
