@@ -1,4 +1,6 @@
-## 0.6.3 (in progress)
+## 0.6.3 (4 April 2019)
+
+- Python3 fixes for LSF schedulers.
 
 ## 0.6.2 
 - Support pip10.

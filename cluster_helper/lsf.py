@@ -2,6 +2,8 @@ import os
 import subprocess
 import fnmatch
 
+import six
+
 from . import utils
 
 LSB_PARAMS_FILENAME = "lsb.params"
@@ -77,6 +79,8 @@ def apply_bparams(fn):
         output = subprocess.check_output(cmd)
     except:
         return None
+    if six.PY3:
+        output = output.decode('ascii', 'ignore')
     return fn(output.split("\n"))
 
 def apply_lsadmin(fn):
@@ -88,6 +92,8 @@ def apply_lsadmin(fn):
         output = subprocess.check_output(cmd)
     except:
         return None
+    if six.PY3:
+        output = output.decode('ascii', 'ignore')
     return fn(output.split("\n"))
 
 
