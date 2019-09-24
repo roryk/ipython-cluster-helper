@@ -737,7 +737,8 @@ cd $PBS_O_WORKDIR
             output = subprocess.check_output("qsub < %s" % self.batch_file_name,
                                              shell=True, universal_newlines=True)
             if six.PY3:
-                output = output.decode('ascii', 'ignore')
+                if not isinstance(output, str):
+                    output = output.decode('ascii', 'ignore')
             job_ids.append(output.strip())
         job_id = ";".join(job_ids)
         self.notify_start(job_id)
