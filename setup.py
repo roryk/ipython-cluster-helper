@@ -11,7 +11,7 @@ def parse_requirements(fn):
 reqs = parse_requirements("requirements.txt")
 
 setup(name="ipython-cluster-helper",
-      version="0.6.3",
+      version="0.6.4",
       author="Rory Kirchner",
       author_email="rory.kirchner@gmail.com",
       description="Simplify IPython cluster start up and use for "

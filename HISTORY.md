@@ -1,3 +1,6 @@
+## 0.6.4 (24 September 2019)
+- python3 fixes for PBSPro schedulers. 
+
 ## 0.6.3 (4 April 2019)
 
 - Python3 fixes for LSF schedulers.
