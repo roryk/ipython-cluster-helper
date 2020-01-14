@@ -1185,7 +1185,7 @@ def _create_base_ipython_dirs():
 
 def _shutdown(client):
     print ("Sending a shutdown signal to the controller and engines.")
-    client.close()
+    client.shutdown(hub=True, block=True)
 
 def _get_direct_view(client, retries):
     view = client[:]
