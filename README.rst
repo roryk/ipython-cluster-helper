@@ -2,8 +2,8 @@ ipython-cluster-helper
 ======================
 .. image:: https://travis-ci.org/roryk/ipython-cluster-helper.svg
     :target: https://travis-ci.org/roryk/ipython-cluster-helper
-.. image:: https://zenodo.org/badge/3658/roryk/ipython-cluster-helper.svg
-    :target: https://zenodo.org/record/17119#.VT7oWs5dqyM
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3459799.svg
+    :target: https://doi.org/10.5281/zenodo.3459799
 
 Quickly and easily parallelize Python functions using IPython on a
 cluster, supporting multiple schedulers. Optimizes IPython defaults to
